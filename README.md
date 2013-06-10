@@ -2,7 +2,7 @@
 
 An in-memory, eventually persisted data store of the simplest design, `dskvs` stores it's data in two layers of maps, which are routinely persisted to disk by a janitor.
 
-`dskvs` stands for _D_ead _S_imple _K_ey-_V_alue _S_tore.  The aim of this library is to provide storage solution for Small-Data (tm) apps.  If your data-set holds within the RAM of a single host.
+`dskvs` stands for Dead Simple Key-Value Store.  The aim of this library is to provide storage solution for Small Data™ apps.  If your data-set holds within the RAM of a single host, `dskvs` is the right thing for you.
 
 ```go
 // Get
@@ -42,7 +42,9 @@ The term is a pun on 'eventual consistency', but has nothing to do with the CAP 
 
 `dskvs` serves all its request from memory.  All the writes and reads are responded for from memory.  When a write happens on a key-value, the key is flagged as dirty and a janitor goroutine will pick it up as soon as possible and persist it to disk, whenever that happens to be.
 
-Usually, _eventual-persistance_ means that it will be persisted ASAP, but within a couple of µ-seconds.  Meanwhile, any read subsequent to the write will be correct.
+Usually, _eventual-persistance_ means that it will be persisted ASAP, but within a couple of µ-seconds.  Meanwhile, any read subsequent to the write will be correct, as they are served from memory.
+
+See `dskvs` as big cache that happens to be backed up to disk very frequently.
 
 ## License
-An MIT license, see LICENSE.md
+An MIT license, see the LICENSE file.
