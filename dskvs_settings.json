@@ -4,11 +4,11 @@
 
    // Where the root of the database directory must be
    // Default : current working directory
-   db_root: ".",
+   "db_root": ".",
 
    // The prefix of the database directory
    // Default : "db"
-   db_path: "db",
+   "db_path": "db",
 
    // The maximum amount of memory dskvs can use, in MB.
    // Default : 2048 MB
@@ -16,13 +16,13 @@
    // Note 2  : if this amount is reduced below the current usage,
    //           memory resources exceeding this amount will be evicted
    //           in a LRU fashion. No file will be deleted.
-   max_memory: "2048",
+   "max_memory": "2048",
 
-   // Buffering of writes
+   // Buffering of writes, in MB
    // Default : no buffering enabled, all writes are done individually
-   buffer_size: "",
+   "buffer_size": "",
 
-   // Periodicity of writes
+   // Periodicity of writes, in milliseconds
    // Default : writes will be done as soon as possible
    // Note    : Will buffer all the writes and back them up to disk every
    //           `write_period` ms.
@@ -30,5 +30,5 @@
    //           buffers to disk at every period.  However, if a buffer
    //           is full in between two periods, the policy of `buffer_size`
    //           will still apply
-   write_period: ""
+   "write_period": ""
 }
