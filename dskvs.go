@@ -11,15 +11,27 @@ const (
 )
 
 var (
-	dirtyPages       chan *page
+	// Pages to be updated on disk
+	dirtyPages chan *page
+	// Collections to delete from disk
 	dirtyCollections chan string
-	collections      map[string]*member
-	collectionLock   sync.RWMutex
+	// Collections of members, each member containing many pages
+	collections map[string]*member
+	// RW lock on the collections map, to prevent concurrent modifications
+	collectionLock sync.RWMutex
 )
 
+// A member
 type member struct {
 	lock    sync.RWMutex
 	members *map[string]*page
+}
+
+func newMember() *member {
+	return &member{
+		new(sync.RWMutex),
+		make(map[string]*page),
+	}
 }
 
 type page struct {
@@ -27,6 +39,15 @@ type page struct {
 	isDirty   bool
 	isDeleted bool
 	value     string
+}
+
+func newPage() *page {
+	return &page{
+		new(sync.RWMutex),
+		false,
+		false,
+		"",
+	}
 }
 
 func Get(key string) (string, error) {
@@ -74,28 +95,19 @@ func Delete(key string) error {
  * Helpers
  */
 
-func newPage() *page {
-	return &page{
-		new(sync.RWMutex),
-		false,
-		false,
-		"",
-	}
-}
-
 // Returns whether a key is a collection key or a collection/member key.
 // Returns an error if the key is invalid
 func isCollectionKey(key string) (bool, error) {
-	firstSep := strings.Index(key, collKeySep)
-	if firstSep == 0 {
+	idxSeperator := strings.Index(key, collKeySep)
+	if idxSeperator == 0 {
 		return false, errorNoColl(key)
 	} else if key == "" {
 		return false, errorEmptyKey(key)
 	}
 
-	if firstSep < 0 {
+	if idxSeperator < 0 {
 		return true, nil
-	} else if firstSep == len(key)-1 {
+	} else if idxSeperator == len(key)-1 {
 		return true
 	}
 	return false
