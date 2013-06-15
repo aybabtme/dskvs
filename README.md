@@ -1,5 +1,8 @@
 # A Dead Simple Key-Value Store
 
+[![Build Status](https://drone.io/github.com/aybabtme/dskvs/status.png)]
+(https://drone.io/github.com/aybabtme/dskvs/latest)
+
 An in-memory, eventually persisted data store of the simplest design, `dskvs` stores it's data in two layers of maps, which are routinely persisted to disk by a janitor.
 
 `dskvs` stands for Dead Simple Key-Value Store.  The aim of this library is to provide storage solution for Small Data™ apps.  If your data-set holds within the RAM of a single host, `dskvs` is the right thing for you.

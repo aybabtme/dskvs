@@ -1,9 +1,19 @@
+
 package dskvs
 
-func init() {
-	// Initialize maps according to dskvs_settings.json
+import "fmt"
 
-	// catch SIGUSR1, reload dskvs_settings.json when caught
+func Get(key string) (string, error) {
 
-	// when load of maps is complete, start janitor goroutine
+	return nil, nil
+}
+
+// Puts the given value into the key location.  key should be a member, not a // collection
+func Put(key, value string) error {
+	return nil
+}
+
+// Deletes a key from the storage.  If the key covers a collection, the whole // collection will be deleted.
+func Delete(key string) error {
+	return nil
 }
