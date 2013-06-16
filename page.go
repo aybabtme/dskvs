@@ -13,16 +13,18 @@ type page struct {
 
 func newPage() *page {
 	return &page{
-		new(sync.RWMutex),
-		false,
-		false,
-		nil,
+		isDirty:   false,
+		isDeleted: false,
+		value:     nil,
 	}
 }
 
 func (p *page) get() *string {
 	p.RLock()
 	defer p.RUnlock()
+	if p.isDeleted {
+		return nil
+	}
 	return p.value
 }
 

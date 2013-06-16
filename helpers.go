@@ -5,18 +5,22 @@ import (
 	"strings"
 )
 
-// Returns whether a key is a collection key or a collection/member key.
-// Returns an error if the key is invalid
-func isCollectionKey(key string) (bool, error) {
+func checkKeyValid(key string) error {
 	idxSeperator := strings.Index(key, collKeySep)
 	if idxSeperator == 0 {
-		return false, errorNoColl(key)
+		return errorNoColl(key)
 	} else if key == "" {
-		return false, errorEmptyKey(key)
+		return errorEmptyKey()
 	}
+	return nil
+}
 
+// Returns whether a key is a collection key or a collection/member key.
+// Returns an error if the key is invalid
+func isCollectionKey(key string) bool {
+	idxSeperator := strings.Index(key, collKeySep)
 	if idxSeperator < 0 {
-		return true, nil
+		return true
 	} else if idxSeperator == len(key)-1 {
 		return true
 	}
@@ -25,18 +29,14 @@ func isCollectionKey(key string) (bool, error) {
 
 // Takes a fullkey and splits it in a (collection, member) tuple.  If member
 // is nil, the fullkey is a request for the collection as a whole
-func splitKeys(fullKey string) (coll, member string) {
-	if !isCollectionKey(fullKey) {
-		return fullKey, nil
+func splitKeys(fullKey string) (string, string, error) {
+	if isCollectionKey(fullKey) {
+		return "", "", errorNoKey(fullKey)
 	}
-	keys := strings.SplitN(ful, collKeySep, 2)
 
-	coll = keys[0]
-	if keys[1] == "" {
-		member = nil
-	} else {
-		member = keys[1]
-	}
+	keys := strings.SplitN(fullKey, collKeySep, 2)
+
+	return keys[0], keys[1], nil
 }
 
 func isValidPath(path string) bool {

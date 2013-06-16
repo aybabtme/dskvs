@@ -13,8 +13,6 @@
 package dskvs
 
 import (
-	"fmt"
-	"strings"
 	"sync"
 )
 
@@ -23,18 +21,20 @@ const collKeySep = "/"
 var (
 	existLock     sync.RWMutex
 	existingStore map[string]bool
+	dirtyPages    chan *page
+	toDelete      chan *member
 )
 
 func init() {
-	existingStore := make(map[string]bool)
+	existingStore = make(map[string]bool)
+	dirtyPages = make(chan *page)
+	toDelete = make(chan *member)
 }
 
 type Store struct {
-	isLoaded     bool
-	storagePath  string
-	dirtyPages   chan *page
-	dirtyMembers chan *member
-	coll         *collections
+	isLoaded    bool
+	storagePath string
+	coll        *collections
 }
 
 /*
@@ -44,16 +44,14 @@ type Store struct {
 // Instantiate a new store reading from the specified path
 func NewStore(path string) (*Store, error) {
 
-	if isInvalidPath(path) {
+	if !isValidPath(path) {
 		return nil, errorPathInvalid(path)
 	}
 
 	return &Store{
-		false,              // isLoaded
-		expandPath(path),   // storagePath
-		make(chan *page),   // dirtyPages
-		make(chan *member), // dirtyMembers
-		newCollections(),   // collections
+		false,            // isLoaded
+		expandPath(path), // storagePath
+		newCollections(), // collections
 	}, nil
 }
 
@@ -73,6 +71,7 @@ func (s *Store) Load() error {
 	existLock.Unlock()
 
 	// TODO scan the path for files, load them in memory
+	return nil
 }
 
 // This call will block for disk IO.
@@ -85,6 +84,10 @@ func (s *Store) Close() error {
 	existLock.Lock()
 	delete(existingStore, s.storagePath)
 	existLock.Unlock()
+
+	// TODO wait for the janitor to finish writing
+
+	return nil
 }
 
 /*
@@ -96,16 +99,20 @@ func (s *Store) Get(fullKey string) (*string, error) {
 		return nil, errorStoreNotLoaded(s)
 	}
 
-	isColl, err := isCollectionKey(fullKey)
-	if err != nil {
+	if err := checkKeyValid(fullKey); err != nil {
 		return nil, err
 	}
+	isColl := isCollectionKey(fullKey)
 
 	if isColl {
 		return nil, errorGetIsColl(fullKey)
 	}
 
-	coll, key := splitKeys(fullKey)
+	coll, key, err := splitKeys(fullKey)
+	if err != nil {
+		return nil, err
+	}
+
 	return s.coll.get(coll, key)
 }
 
@@ -115,10 +122,10 @@ func (s *Store) GetAll(coll string) ([]*string, error) {
 		return nil, errorStoreNotLoaded(s)
 	}
 
-	isColl, err := isCollectionKey(coll)
-	if err != nil {
+	if err := checkKeyValid(coll); err != nil {
 		return nil, err
 	}
+	isColl := isCollectionKey(coll)
 
 	if !isColl {
 		return nil, errorGetAllIsNotColl(coll)
@@ -136,16 +143,20 @@ func (s *Store) Put(fullKey string, value *string) error {
 		return errorStoreNotLoaded(s)
 	}
 
-	isColl, err := isCollectionKey(fullKey)
+	if err := checkKeyValid(fullKey); err != nil {
+		return err
+	}
+	isColl := isCollectionKey(fullKey)
+
+	if isColl {
+		return errorPutIsColl(fullKey, *value)
+	}
+
+	coll, key, err := splitKeys(fullKey)
 	if err != nil {
 		return err
 	}
 
-	if isColl {
-		return errorPutIsColl(fullKey, value)
-	}
-
-	coll, key := splitKeys(fullKey)
 	return s.coll.put(coll, key, value)
 }
 
@@ -155,29 +166,33 @@ func (s *Store) Delete(fullKey string) error {
 		return errorStoreNotLoaded(s)
 	}
 
-	isColl, err := isCollectionKey(fullKey)
-	if err != nil {
+	if err := checkKeyValid(fullKey); err != nil {
 		return err
 	}
+	isColl := isCollectionKey(fullKey)
 
 	if isColl {
 		return errorDeleteIsColl(fullKey)
 	}
 
-	coll, key := splitKeys(fullKey)
+	coll, key, err := splitKeys(fullKey)
+	if err != nil {
+		return err
+	}
+
 	return s.coll.deleteKey(coll, key)
 }
 
 // Deletes all the members in collection `coll`
 func (s *Store) DeleteAll(coll string) error {
 	if !s.isLoaded {
-		return nil, errorStoreNotLoaded(s)
+		return errorStoreNotLoaded(s)
 	}
 
-	isColl, err := isCollectionKey(coll)
-	if err != nil {
+	if err := checkKeyValid(coll); err != nil {
 		return err
 	}
+	isColl := isCollectionKey(coll)
 
 	if !isColl {
 		return errorDeleteAllIsNotColl(coll)

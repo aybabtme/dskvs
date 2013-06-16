@@ -11,8 +11,7 @@ type collections struct {
 
 func newCollections() *collections {
 	return &collections{
-		new(sync.RWMutex),
-		make(map[string]*member),
+		members: make(map[string]*member),
 	}
 }
 
@@ -36,7 +35,7 @@ func (c *collections) getCollection(coll string) ([]*string, error) {
 		return nil, errorNoSuchColl(coll)
 	}
 
-	return m.getMembers()
+	return m.getMembers(), nil
 }
 
 func (c *collections) put(coll, key string, value *string) error {
@@ -58,7 +57,9 @@ func (c *collections) put(coll, key string, value *string) error {
 		c.Unlock()
 	}
 
-	return m.put(key, value)
+	m.put(key, value)
+
+	return nil
 }
 
 func (c *collections) deleteKey(coll, key string) error {
@@ -76,15 +77,24 @@ func (c *collections) deleteKey(coll, key string) error {
 }
 
 func (c *collections) deleteCollection(coll string) error {
-	c.Lock()
-	m, ok := c.members[coll]
-	delete(c.members, coll)
-	defer c.Unlock()
+	c.RLock()
+	_, ok := c.members[coll]
+	c.RUnlock()
 	if !ok {
+		c.Lock()
+		m, ok := c.members[coll]
+		delete(c.members, coll)
+		if !ok {
+			c.Unlock()
+			return errorNoSuchColl(coll)
+		}
+		c.Unlock()
+
+		m.deleteAll()
+		toDelete <- m
+	} else {
 		return errorNoSuchColl(coll)
 	}
-
-	m.deleteAll()
 
 	return nil
 }

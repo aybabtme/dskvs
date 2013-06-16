@@ -1,7 +1,6 @@
 package dskvs
 
 import (
-	"errors"
 	"fmt"
 	"time"
 )
@@ -17,7 +16,7 @@ func (e StoreError) Error() string {
 	return fmt.Sprintf("%v: %v", e.When, e.What)
 }
 
-func errorStoreNotLoaded(s *Store) {
+func errorStoreNotLoaded(s *Store) error {
 	return StoreError{
 		time.Now(),
 		fmt.Sprintf("Store with path <%s> has not been loaded yet",
@@ -73,6 +72,13 @@ func errorNoColl(key string) error {
 	return KeyError{
 		time.Now(),
 		fmt.Sprintf("key<%s> has no collection identifier", key),
+	}
+}
+
+func errorNoKey(key string) error {
+	return KeyError{
+		time.Now(),
+		fmt.Sprintf("key<%s> has no member identifier", key),
 	}
 }
 
