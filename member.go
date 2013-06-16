@@ -85,7 +85,7 @@ func (m *member) put(key string, value *string) {
 		aPage, ok = m.entries[key]
 		if !ok {
 			// It was not so go ahead and write a new entry
-			aPage := newPage()
+			aPage := newPage(key)
 			m.entries[key] = aPage
 		}
 		m.RUnlock()

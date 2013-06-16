@@ -5,8 +5,10 @@ import (
 	"strings"
 )
 
+const CollKeySep = "/"
+
 func checkKeyValid(key string) error {
-	idxSeperator := strings.Index(key, collKeySep)
+	idxSeperator := strings.Index(key, CollKeySep)
 	if idxSeperator == 0 {
 		return errorNoColl(key)
 	} else if key == "" {
@@ -18,7 +20,7 @@ func checkKeyValid(key string) error {
 // Returns whether a key is a collection key or a collection/member key.
 // Returns an error if the key is invalid
 func isCollectionKey(key string) bool {
-	idxSeperator := strings.Index(key, collKeySep)
+	idxSeperator := strings.Index(key, CollKeySep)
 	if idxSeperator < 0 {
 		return true
 	} else if idxSeperator == len(key)-1 {
@@ -34,7 +36,7 @@ func splitKeys(fullKey string) (string, string, error) {
 		return "", "", errorNoKey(fullKey)
 	}
 
-	keys := strings.SplitN(fullKey, collKeySep, 2)
+	keys := strings.SplitN(fullKey, CollKeySep, 2)
 
 	return keys[0], keys[1], nil
 }

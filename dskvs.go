@@ -1,36 +1,42 @@
-// dskvs is a key value store.  In this store, there are two level or
-// mapping.  The store is organized in collections that hold members.
-// Each member is represented by a page.  Each collection is represented
-// by a map of members.
-//
-// dskvs addresses members using a 'collection/member' convention.
-//
-// To start using dskvs, create a Store object with dskvs.NewStore,
-// specifying where in the current filesystem to save the Store's files.
-// Then, call store.Load to load any pre-existing collections and/or
-// members into your store instance.  When you're done using the store,
-// call store.Close, which finishes writing the last updates
+/*
+
+Package dskvs is a key value store.  In this store, there are two level or
+mapping.  The store is organized in collections that hold members.  Each member
+is represented by a page.  Each collection is represented by a map of members.
+
+dskvs addresses members using a 'collection/member' convention.
+
+To start using dskvs, create a Store object with dskvs.NewStore, specifying
+where in the current filesystem to save the Store's files. Then, call store.Load
+to load any pre-existing collections and/or members into your store instance.
+When you're done using the store, call store.Close, which finishes writing the
+last updates package dskvs
+
+*/
 package dskvs
 
 import (
 	"sync"
 )
 
-const collKeySep = "/"
-
 var (
-	existLock     sync.RWMutex
-	existingStore map[string]bool
-	dirtyPages    chan *page
-	toDelete      chan *member
+	storeExistsLock sync.RWMutex
+	storeExists     map[string]bool
+	dirtyPages      chan *page
+	toDelete        chan *member
 )
 
 func init() {
-	existingStore = make(map[string]bool)
+	storeExists = make(map[string]bool)
 	dirtyPages = make(chan *page)
 	toDelete = make(chan *member)
 }
 
+// Store provides methods to manipulate the data held in memory and on disk at
+// the path that was specified when you instantiated it.  Every store instance
+// points at a different path location on disk.  Beware if you create a store
+// that lives within the tree of another store.  There's no garantee to what
+// will happen, aside perhaps a garantee that things will go wrong.
 type Store struct {
 	isLoaded    bool
 	storagePath string
@@ -41,7 +47,7 @@ type Store struct {
 	Meta operations on Store
 */
 
-// Instantiate a new store reading from the specified path
+// NewStore instantiate a new store reading from the specified path
 func NewStore(path string) (*Store, error) {
 
 	if !isValidPath(path) {
@@ -55,35 +61,33 @@ func NewStore(path string) (*Store, error) {
 	}, nil
 }
 
-// This call will block for disk IO.
-// Loads the files in memory.
+// Load loads the files in memory. This call will block for disk IO.
 func (s *Store) Load() error {
-	existLock.RLock()
-	exists := existingStore[s.storagePath]
-	existLock.RUnlock()
+	storeExistsLock.RLock()
+	exists := storeExists[s.storagePath]
+	storeExistsLock.RUnlock()
 
 	if exists {
 		return errorPathInUse(s.storagePath)
 	}
 
-	existLock.Lock()
-	existingStore[s.storagePath] = true
-	existLock.Unlock()
+	storeExistsLock.Lock()
+	storeExists[s.storagePath] = true
+	storeExistsLock.Unlock()
 
 	// TODO scan the path for files, load them in memory
 	return nil
 }
 
-// This call will block for disk IO.
-// Finish writing dirty updates and close all the files. Report any
-// error occuring doing so.
+// Close finishes writing dirty updates and closes all the files. Report any
+// error occuring doing so. This call will block for disk IO.
 func (s *Store) Close() error {
 	if !s.isLoaded {
 		return errorStoreNotLoaded(s)
 	}
-	existLock.Lock()
-	delete(existingStore, s.storagePath)
-	existLock.Unlock()
+	storeExistsLock.Lock()
+	delete(storeExists, s.storagePath)
+	storeExistsLock.Unlock()
 
 	// TODO wait for the janitor to finish writing
 
@@ -94,6 +98,14 @@ func (s *Store) Close() error {
 	Storage operations
 */
 
+// Get returns the value refernced by the `fullKey` given in argument. A
+// `fullKey` is a string that has a collection identifier and a member
+// identifier, separated by `CollKeySep`, Ex:
+//
+//	val, err := store.Get("artists/daft_punk")
+//
+// will get the value attached to Daft Punk, from within the Artists
+// collection
 func (s *Store) Get(fullKey string) (*string, error) {
 	if !s.isLoaded {
 		return nil, errorStoreNotLoaded(s)
@@ -115,7 +127,7 @@ func (s *Store) Get(fullKey string) (*string, error) {
 	return s.coll.get(coll, key)
 }
 
-// Gets all the members' value in the collection `coll`.
+// GetAll returns all the members' value in the collection `coll`.
 func (s *Store) GetAll(coll string) ([]*string, error) {
 	if !s.isLoaded {
 		return nil, errorStoreNotLoaded(s)
@@ -132,7 +144,7 @@ func (s *Store) GetAll(coll string) ([]*string, error) {
 	return s.coll.getCollection(coll)
 }
 
-// Puts the given value into the key location.  `fullKey` should be a
+// Put saves the given value into the key location.  `fullKey` should be a
 // member,  not a collection.  There is no `PutAll` version of this
 // call.  If you wish to add a collection all at once, iterate over your
 // collection and call `Put` on each member.
@@ -157,7 +169,7 @@ func (s *Store) Put(fullKey string, value *string) error {
 	return s.coll.put(coll, key, value)
 }
 
-// Deletes member with `fullKey` from the storage.
+// Delete removes member with `fullKey` from the storage.
 func (s *Store) Delete(fullKey string) error {
 	if !s.isLoaded {
 		return errorStoreNotLoaded(s)
@@ -179,7 +191,7 @@ func (s *Store) Delete(fullKey string) error {
 	return s.coll.deleteKey(coll, key)
 }
 
-// Deletes all the members in collection `coll`
+// DeleteAll removes all the members in collection `coll`
 func (s *Store) DeleteAll(coll string) error {
 	if !s.isLoaded {
 		return errorStoreNotLoaded(s)

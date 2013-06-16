@@ -8,13 +8,15 @@ type page struct {
 	sync.RWMutex
 	isDirty   bool
 	isDeleted bool
+	key       string
 	value     *string
 }
 
-func newPage() *page {
+func newPage(key string) *page {
 	return &page{
 		isDirty:   false,
 		isDeleted: false,
+		key:       key,
 		value:     nil,
 	}
 }
