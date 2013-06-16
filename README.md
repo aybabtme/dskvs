@@ -19,19 +19,19 @@ store := dskvs.NewStore("/home/aybabtme/music")
 store.Load()
 
 // Get
-value, err := dskvs.Get("artist/daft_punk")
+value, err := store.Get("artist/daft_punk")
 
 // GetAll
-values, err := dskvs.GetAll("artist")
+values, err := store.GetAll("artist")
 
 // Put
-oldValue, err := dksvs.Put("artist/daft_punk", "{ quality:'epic' }")
+oldValue, err := store.Put("artist/daft_punk", "{ quality:'epic' }")
 
 // Delete
-err := dksvs.Delete("artist/celine_dion")
+err := store.Delete("artist/celine_dion")
 
 // Delete all
-err := dksvs.DeleteAll("artist")
+err := store.DeleteAll("artist")
 
 // Finish writing, close files.
 store.Close()
