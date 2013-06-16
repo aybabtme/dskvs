@@ -90,7 +90,7 @@ func (m *member) put(key string, value []byte) {
 			aPage = newPage(key)
 			m.entries[key] = aPage
 		}
-		m.RUnlock()
+		m.Unlock()
 	}
 
 	// Operate on the page itself, which holds a more granular lock

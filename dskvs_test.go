@@ -51,7 +51,7 @@ func TestGet(t *testing.T) {
 		t.Fatalf("Error getting data back", err)
 	}
 
-	if bytes.Equal(expected, actual) {
+	if !bytes.Equal(expected, actual) {
 		t.Fatalf("Expected <%s> but was <%s>",
 			expected,
 			actual)
