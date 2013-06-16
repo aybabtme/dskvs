@@ -5,7 +5,7 @@ import (
 )
 
 type page struct {
-	lock      sync.RWMutex
+	sync.RWMutex
 	isDirty   bool
 	isDeleted bool
 	value     *string
@@ -21,14 +21,14 @@ func newPage() *page {
 }
 
 func (p *page) get() *string {
-	p.lock.RLock()
-	defer p.lock.RUnlock()
+	p.RLock()
+	defer p.RUnlock()
 	return p.value
 }
 
 func (p *page) set(value *string) {
-	p.lock.Lock()
-	defer p.lock.Unlock()
+	p.Lock()
+	defer p.Unlock()
 	wasDirty := p.isDirty
 	p.value = value
 	p.isDirty = true
@@ -38,8 +38,8 @@ func (p *page) set(value *string) {
 }
 
 func (p *page) delete() {
-	p.lock.Lock()
-	defer p.lock.Unlock()
+	p.Lock()
+	defer p.Unlock()
 	wasDirty := p.isDirty
 	p.value = nil
 	p.isDirty = true

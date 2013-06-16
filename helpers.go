@@ -43,3 +43,8 @@ func isValidPath(path string) bool {
 	log.Printf("isValidPath(%s) called but not yet implemented", path)
 	return true
 }
+
+func expandPath(path string) string {
+	log.Printf("expandPath(%s) called but not yet implemented", path)
+	return ""
+}

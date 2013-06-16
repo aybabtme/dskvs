@@ -6,9 +6,9 @@ import (
 
 // A member is a map protected by a RW lock to prevent concurrent
 // modificiations
-type members struct {
-	lock    sync.RWMutex
-	entries *map[string]*page
+type member struct {
+	sync.RWMutex
+	entries map[string]*page
 }
 
 func newMember() *member {
@@ -19,20 +19,26 @@ func newMember() *member {
 }
 
 func (m *member) get(key string) (*string, error) {
-	m.lock.RLock()
-	defer m.lock.RUnlock()
-	val, ok := m.entries[key]
+	m.RLock()
+	aPage, ok := m.entries[key]
+	m.RUnlock()
 
-	if ok {
-		return val.value, nil
-	} else
+	if !ok {
 		return nil, errorNoSuchKey(key)
 	}
+
+	aPage.RLock()
+	defer aPage.RUnlock()
+	return aPage.value, nil
+}
+
+func (m *member) getMembers() ([]*string, error) {
+
 }
 
 func (m *member) put(key string, value *string) {
-	m.lock.Lock()
-	defer m.lock.Unlock()
+	m.Lock()
+	defer m.Unlock()
 	aPage, ok := m.entries[key]
 	if !ok {
 		aPage := newPage()
@@ -42,11 +48,19 @@ func (m *member) put(key string, value *string) {
 }
 
 func (m *member) delete(key string) {
-	m.lock.Lock()
-	defer m.lock.Unlock()
+	m.Lock()
+	defer m.Unlock()
 	aPage, ok := m.entries[key]
 	if ok {
 		aPage.delete()
 		m[key] = nil
 	}
+}
+
+func (m *member) deleteAll() error {
+	m.Lock()
+	for _, aPage := range m.entries {
+		aPage.delete()
+	}
+	m.Unlock()
 }

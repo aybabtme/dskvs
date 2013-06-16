@@ -90,6 +90,13 @@ func errorNoSuchKey(key string) error {
 	}
 }
 
+func errorNoSuchColl(key string) error {
+	return KeyError{
+		time.Now(),
+		fmt.Sprintf("key<%s> has no value", key),
+	}
+}
+
 /*
  * Errors when the key implies the wrong method
  */
