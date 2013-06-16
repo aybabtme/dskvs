@@ -20,13 +20,13 @@ func newJanitor() janitor {
 
 func (j *janitor) loadStore(s *Store) error {
 	log.Printf("janitor.loadStore(%s) called but not yet implemented",
-		*s)
+		s.storagePath)
 	return nil
 }
 
 func (j *janitor) unloadStore(s *Store) error {
 	log.Printf("janitor.unloadStore(%s) called but not yet implemented",
-		*s)
+		s.storagePath)
 	return nil
 }
 

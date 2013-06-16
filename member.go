@@ -48,22 +48,21 @@ func (m *member) getMembers() [][]byte {
 		pages = append(pages, aPage)
 	}
 	// Release the lock, everybody is free to use the map again
-	defer m.RUnlock()
+	m.RUnlock()
 
-	// Now we want to grab the strings in the pages
+	// Now we want to grab the bytes in the pages
 	var values [][]byte
 	var aVal []byte
 	for _, aPage := range pages {
-		// As we iterate to get every page, since the map is not locked,
-		// page[i+1] can be deleted while we read page[i], and when we get
-		// to read page[i+1], we'll want to discard this value.  We don't
-		// want to return deleted pages as if they were part of our
-		// collection
+		// As we iterate over every page, other goroutines can do so as well.
+		// Since the map is not locked, page[i+1] could be deleted while we
+		// read page[i]. In such a case, when we get to read page[i+1], we'll
+		// want to discard this value.
 		aVal = aPage.get()
-		// If the page has been delete, page.get() contracts says it will
-		// return a nil-string
+		// If the page has been deleted, page.get() contracts says it will
+		// return a nil-slice
 		if aVal == nil {
-			// So we can discard those deleted strings
+			// So we can discard those deleted bytes
 		} else {
 			// And keep only those that are still valid
 			values = append(values, aVal)
