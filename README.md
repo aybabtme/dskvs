@@ -38,8 +38,8 @@ store.Close()
 ```
 
 There is currently no support for replication of any sort.  There are already
-dozens of highly specialized data-store providing this sort of features, `dskvs
-` is not one of them.
+dozens of highly specialized data-store providing this sort of features,
+`dskvs` is not one of them.
 
 ## Status
 This project is not yet ready for production.
@@ -54,8 +54,8 @@ import "github.com/aybabtme/dskvs"
 Then start using the `dskvs` package.
 
 Otherwise, fork this repo and `go get` your fork.  Also update your import
-string.  If you make improvements or fix issues, please do submit a pull-
-request.
+string.  If you make improvements or fix issues, please do submit a
+pull-request.
 
 ## Concurrency
 `Store` instances are safe for concurrent use.  You can create stores
