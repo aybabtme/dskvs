@@ -11,12 +11,12 @@ type page struct {
 	value     *string
 }
 
-func newPage(value string) *page {
+func newPage() *page {
 	return &page{
 		new(sync.RWMutex),
 		false,
 		false,
-		value,
+		nil,
 	}
 }
 

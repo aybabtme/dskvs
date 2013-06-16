@@ -1,3 +1,15 @@
+// dskvs is a key value store.  In this store, there are two level or
+// mapping.  The store is organized in collections that hold members.
+// Each member is represented by a page.  Each collection is represented
+// by a map of members.
+//
+// dskvs addresses members using a 'collection/member' convention.
+//
+// To start using dskvs, create a Store object with dskvs.NewStore,
+// specifying where in the current filesystem to save the Store's files.
+// Then, call store.Load to load any pre-existing collections and/or
+// members into your store instance.  When you're done using the store,
+// call store.Close, which finishes writing the last updates
 package dskvs
 
 import (
@@ -6,125 +18,148 @@ import (
 	"sync"
 )
 
-const (
-	collKeySep = "/"
-)
+const collKeySep = "/"
 
-var (
-	// Pages to be updated on disk
-	dirtyPages chan *page
-	// Collections to delete from disk
-	dirtyCollections chan string
-	// Collections of members, each member containing many pages
-	collections map[string]*member
-	// RW lock on the collections map, to prevent concurrent modifications
-	collectionLock sync.RWMutex
-)
+var existingStore map[string]bool
 
-// A member
-type member struct {
-	lock    sync.RWMutex
-	members *map[string]*page
+func init() {
+	existingStore := make(map[string]bool)
 }
 
-func newMember() *member {
-	return &member{
-		new(sync.RWMutex),
-		make(map[string]*page),
+type Store struct {
+	isLoaded     bool
+	storagePath  string
+	dirtyPages   chan *page
+	dirtyMembers chan *member
+	coll         collections
+}
+
+// Instantiate a new store reading from the specified path
+func NewStore(path string) (*Store, error) {
+
+	if isInvalidPath(path) {
+		return nil, errorPathInvalid(path)
 	}
+
+	return &Store{path, make(chan *page), make(chan *members)}, nil
 }
 
-type page struct {
-	lock      sync.RWMutex
-	isDirty   bool
-	isDeleted bool
-	value     string
-}
+// This call will block for disk IO.
+// Loads the files in memory.
+func (s *Store) Load() error {
+	_, ok := existingStore[s.storagePath]
 
-func newPage() *page {
-	return &page{
-		new(sync.RWMutex),
-		false,
-		false,
-		"",
+	if ok {
+		return errorPathInUse(s.storagePath)
 	}
+
+	existingStore[s.storagePath] = true
+
+	// TODO scan the path for files, load them in memory
 }
 
-func Get(key string) (string, error) {
+// This call will block for disk IO.
+// Finish writing dirty updates and close all the files. Report any
+// error occuring doing so.
+func (s *Store) Close() error {
+	if !s.isLoaded {
+		return errorStoreNotLoaded(s)
+	}
 
-	if isColl, err := isCollectionKey(key); isColl && err == nil {
+	existingStore[s.storagePath]
+}
+
+func (s *Store) Get(key string) (*string, error) {
+	if !s.isLoaded {
+		return nil, errorStoreNotLoaded(s)
+	}
+
+	isColl, err := isCollectionKey(key)
+	if err != nil {
+		return nil, err
+	}
+
+	if isColl {
 		return nil, errorGetIsColl(key)
-	} else if err != nil {
-		return nil, err
-	} else {
-		coll, key := splitKeys(key)
-		return getKey(coll, key)
 	}
+
+	coll, key := splitKeys(key)
+	return s.coll.get(coll, key)
 }
 
-// Puts the given value into the key location.  key should be a member, not a
-// collection
-func Put(key, value string) error {
-
-	if isColl, err := isCollectionKey(key); isColl && err == nil {
-		return nil, errorPutIsColl(key, value)
-	} else if err != nil {
-		return nil, err
-	} else {
-		coll, key := splitKeys(key)
-		return putKey(coll, key, value)
+// Gets all the members' value in the collection `coll`.
+func (s *Store) GetAll(coll string) ([]*string, error) {
+	if !s.isLoaded {
+		return nil, errorStoreNotLoaded(s)
 	}
-	return nil
+
+	isColl, err := isCollectionKey(coll)
+	if err != nil {
+		return nil, err
+	}
+
+	if !isColl {
+		return nil, errorGetAllIsNotColl(coll)
+	}
+
+	return s.coll.getCollection(coll)
 }
 
-// Deletes a key from the storage.  If the key covers a collection, the whole
-// collection will be deleted.
-func Delete(key string) error {
-	if isColl, err := isCollectionKey(key); isColl && err == nil {
-		return deleteCollection(key)
-	} else if err != nil {
+// Puts the given value into the key location.  `key` should be a member,
+// not a collection.  There is no `PutAll` version of this call.  If you
+// wish to add a collection all at once, iterate over your collection and
+// call `Put` on each member.
+func (s *Store) Put(key string, value *string) error {
+	if !s.isLoaded {
+		return errorStoreNotLoaded(s)
+	}
+
+	isColl, err := isCollectionKey(key)
+	if err != nil {
 		return err
-	} else {
-		coll, key := splitKeys(key)
-		deleteKey(coll, key)
 	}
-	return nil
+
+	if isColl {
+		return errorPutIsColl(key, value)
+	}
+
+	coll, key := splitKeys(key)
+	return s.coll.put(coll, key, value)
 }
 
-/*
- * Helpers
- */
-
-// Returns whether a key is a collection key or a collection/member key.
-// Returns an error if the key is invalid
-func isCollectionKey(key string) (bool, error) {
-	idxSeperator := strings.Index(key, collKeySep)
-	if idxSeperator == 0 {
-		return false, errorNoColl(key)
-	} else if key == "" {
-		return false, errorEmptyKey(key)
+// Deletes member with `key` from the storage.
+func (s *Store) Delete(key string) error {
+	if !s.isLoaded {
+		return errorStoreNotLoaded(s)
 	}
 
-	if idxSeperator < 0 {
-		return true, nil
-	} else if idxSeperator == len(key)-1 {
-		return true
+	isColl, err := isCollectionKey(key)
+	if err != nil {
+		return err
 	}
-	return false
+
+	if isColl {
+		return errorDeleteIsColl(key)
+	}
+
+	coll, key := splitKeys(key)
+	return s.coll.deleteKey(coll, key)
 }
 
-// Takes a fullkey and splits it in a (collection, member) tuple.  If member
-// is nil, the fullkey is a request for the collection as a whole
-func splitKeys(fullKey string) (coll, member string) {
-	if !isCollectionKey(fullKey) {
-		return fullKey, nil
+// Deletes all the members in collection `coll`
+func (s *Store) DeleteAll(coll string) error {
+	if !s.isLoaded {
+		return nil, errorStoreNotLoaded(s)
 	}
-	keys := strings.SplitN(ful, collKeySep, 2)
 
-	coll = keys[0]
-	if keys[1] == "" {
-		member = nil
-	} else {
-		member = keys[1]
+	isColl, err := isCollectionKey(coll)
+	if err != nil {
+		return err
 	}
+
+	if !isColl {
+		return errorDeleteAllIsNotColl(coll)
+	}
+
+	return s.coll.deleteCollection(coll)
 }

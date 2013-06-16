@@ -4,10 +4,11 @@ import (
 	"sync"
 )
 
-// A member is a map protected by a RW lock to prevent concurrent modificiations
-type member struct {
+// A member is a map protected by a RW lock to prevent concurrent
+// modificiations
+type members struct {
 	lock    sync.RWMutex
-	members *map[string]*page
+	entries *map[string]*page
 }
 
 func newMember() *member {
@@ -17,22 +18,35 @@ func newMember() *member {
 	}
 }
 
-func (m *member) get(key string) *page {
+func (m *member) get(key string) (*string, error) {
 	m.lock.RLock()
 	defer m.lock.RUnlock()
-	return m[key]
+	val, ok := m.entries[key]
+
+	if ok {
+		return val.value, nil
+	} else
+		return nil, errorNoSuchKey(key)
+	}
 }
 
-func (m *member) put(key, value string) {
+func (m *member) put(key string, value *string) {
 	m.lock.Lock()
 	defer m.lock.Unlock()
-	m[key] = newPage(value)
+	aPage, ok := m.entries[key]
+	if !ok {
+		aPage := newPage()
+	}
+	aPage.set(value)
+	m[key] = aPage
 }
 
 func (m *member) delete(key string) {
 	m.lock.Lock()
 	defer m.lock.Unlock()
-	aPage := m[key]
-	aPage.delete()
-	m[key] = nil
+	aPage, ok := m.entries[key]
+	if ok {
+		aPage.delete()
+		m[key] = nil
+	}
 }
