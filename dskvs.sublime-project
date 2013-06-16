@@ -3,7 +3,7 @@
 	[
 		{
 			"follow_symlinks": true,
-			"path": "/Users/antoine/gocode/src/github.com/aybabtme/dskvs"
+			"path": "."
 		}
 	]
 }
