@@ -7,17 +7,19 @@ import (
 // A member is a map protected by a RW lock to prevent concurrent
 // modificiations
 type member struct {
-	sync.RWMutex
+	coll    string
 	entries map[string]*page
+	sync.RWMutex
 }
 
-func newMember() *member {
+func newMember(coll string) *member {
 	return &member{
+		coll:    coll,
 		entries: make(map[string]*page),
 	}
 }
 
-func (m *member) get(key string) (*string, error) {
+func (m *member) get(key string) ([]byte, error) {
 	m.RLock()
 	aPage, ok := m.entries[key]
 	m.RUnlock()
@@ -29,7 +31,7 @@ func (m *member) get(key string) (*string, error) {
 	return aPage.get(), nil
 }
 
-func (m *member) getMembers() []*string {
+func (m *member) getMembers() [][]byte {
 	// This is tricky because we don't want to lock the whole map for
 	// reading while doing this query.  We don't want that for two reasons:
 	// 1. If there are many ongoing writes on the pages, chances are we will
@@ -49,8 +51,8 @@ func (m *member) getMembers() []*string {
 	defer m.RUnlock()
 
 	// Now we want to grab the strings in the pages
-	var values []*string
-	var aVal *string
+	var values [][]byte
+	var aVal []byte
 	for _, aPage := range pages {
 		// As we iterate to get every page, since the map is not locked,
 		// page[i+1] can be deleted while we read page[i], and when we get
@@ -71,7 +73,8 @@ func (m *member) getMembers() []*string {
 	return values
 }
 
-func (m *member) put(key string, value *string) {
+func (m *member) put(key string, value []byte) {
+
 	// We'd rather not write-lock the whole map if we don't need to
 	m.RLock()
 	aPage, ok := m.entries[key]
@@ -85,7 +88,7 @@ func (m *member) put(key string, value *string) {
 		aPage, ok = m.entries[key]
 		if !ok {
 			// It was not so go ahead and write a new entry
-			aPage := newPage(key)
+			aPage = newPage(key)
 			m.entries[key] = aPage
 		}
 		m.RUnlock()

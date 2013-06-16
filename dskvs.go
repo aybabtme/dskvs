@@ -22,14 +22,12 @@ import (
 var (
 	storeExistsLock sync.RWMutex
 	storeExists     map[string]bool
-	dirtyPages      chan *page
-	toDelete        chan *member
+	jan             janitor
 )
 
 func init() {
 	storeExists = make(map[string]bool)
-	dirtyPages = make(chan *page)
-	toDelete = make(chan *member)
+	jan = newJanitor()
 }
 
 // Store provides methods to manipulate the data held in memory and on disk at
@@ -76,6 +74,13 @@ func (s *Store) Load() error {
 	storeExistsLock.Unlock()
 
 	// TODO scan the path for files, load them in memory
+	err := jan.loadStore(s)
+	if err != nil {
+		return err
+	}
+	jan.run()
+
+	s.isLoaded = true
 	return nil
 }
 
@@ -90,6 +95,13 @@ func (s *Store) Close() error {
 	storeExistsLock.Unlock()
 
 	// TODO wait for the janitor to finish writing
+	err := jan.unloadStore(s)
+	if err != nil {
+		return err
+	}
+	jan.die()
+
+	s.isLoaded = false
 
 	return nil
 }
@@ -106,7 +118,7 @@ func (s *Store) Close() error {
 //
 // will get the value attached to Daft Punk, from within the Artists
 // collection
-func (s *Store) Get(fullKey string) (*string, error) {
+func (s *Store) Get(fullKey string) ([]byte, error) {
 	if !s.isLoaded {
 		return nil, errorStoreNotLoaded(s)
 	}
@@ -128,7 +140,7 @@ func (s *Store) Get(fullKey string) (*string, error) {
 }
 
 // GetAll returns all the members' value in the collection `coll`.
-func (s *Store) GetAll(coll string) ([]*string, error) {
+func (s *Store) GetAll(coll string) ([][]byte, error) {
 	if !s.isLoaded {
 		return nil, errorStoreNotLoaded(s)
 	}
@@ -148,7 +160,7 @@ func (s *Store) GetAll(coll string) ([]*string, error) {
 // member,  not a collection.  There is no `PutAll` version of this
 // call.  If you wish to add a collection all at once, iterate over your
 // collection and call `Put` on each member.
-func (s *Store) Put(fullKey string, value *string) error {
+func (s *Store) Put(fullKey string, value []byte) error {
 	if !s.isLoaded {
 		return errorStoreNotLoaded(s)
 	}
@@ -158,7 +170,7 @@ func (s *Store) Put(fullKey string, value *string) error {
 	}
 
 	if isCollectionKey(fullKey) {
-		return errorPutIsColl(fullKey, *value)
+		return errorPutIsColl(fullKey, string(value))
 	}
 
 	coll, key, err := splitKeys(fullKey)

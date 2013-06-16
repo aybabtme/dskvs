@@ -5,11 +5,11 @@ import (
 )
 
 type page struct {
-	sync.RWMutex
 	isDirty   bool
 	isDeleted bool
 	key       string
-	value     *string
+	value     []byte
+	sync.RWMutex
 }
 
 func newPage(key string) *page {
@@ -21,7 +21,7 @@ func newPage(key string) *page {
 	}
 }
 
-func (p *page) get() *string {
+func (p *page) get() []byte {
 	p.RLock()
 	defer p.RUnlock()
 	if p.isDeleted {
@@ -30,14 +30,14 @@ func (p *page) get() *string {
 	return p.value
 }
 
-func (p *page) set(value *string) {
+func (p *page) set(value []byte) {
 	p.Lock()
 	defer p.Unlock()
 	wasDirty := p.isDirty
 	p.value = value
 	p.isDirty = true
 	if !wasDirty {
-		dirtyPages <- p
+		jan.DirtyPages <- p
 	}
 }
 
@@ -49,6 +49,6 @@ func (p *page) delete() {
 	p.isDirty = true
 	p.isDeleted = true
 	if !wasDirty {
-		dirtyPages <- p
+		jan.DirtyPages <- p
 	}
 }

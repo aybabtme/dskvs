@@ -1,6 +1,7 @@
 package dskvs
 
 import (
+	"log"
 	"sync"
 )
 
@@ -15,7 +16,7 @@ func newCollections() *collections {
 	}
 }
 
-func (c *collections) get(coll, key string) (*string, error) {
+func (c *collections) get(coll, key string) ([]byte, error) {
 	c.RLock()
 	m, ok := c.members[coll]
 	c.RUnlock()
@@ -26,7 +27,7 @@ func (c *collections) get(coll, key string) (*string, error) {
 	return m.get(key)
 }
 
-func (c *collections) getCollection(coll string) ([]*string, error) {
+func (c *collections) getCollection(coll string) ([][]byte, error) {
 	c.RLock()
 	m, ok := c.members[coll]
 	c.RUnlock()
@@ -38,12 +39,13 @@ func (c *collections) getCollection(coll string) ([]*string, error) {
 	return m.getMembers(), nil
 }
 
-func (c *collections) put(coll, key string, value *string) error {
+func (c *collections) put(coll, key string, value []byte) error {
 	c.RLock()
 	m, ok := c.members[coll]
 	c.RUnlock()
 
 	if !ok {
+
 		// Another goroutine could have created the entry since our read
 		// of ok, so need to Lock and verify again that it's still not
 		// an entry.  Not doing so would drop the member that was `put`
@@ -51,7 +53,9 @@ func (c *collections) put(coll, key string, value *string) error {
 		c.Lock()
 		_, stillOk := c.members[coll]
 		if !stillOk {
-			m := newMember()
+			log.Printf("put(\"%s\", \"%s\", %s) didn't exist for coll='%s'",
+				coll, key, value, coll)
+			m = newMember(coll)
 			c.members[coll] = m
 		}
 		c.Unlock()
@@ -94,7 +98,7 @@ func (c *collections) deleteCollection(coll string) error {
 		// TODO : This is not really necessary, can just delete the folder
 		// at once and save some IO.
 		m.deleteAll()
-		toDelete <- m
+		jan.ToDelete <- m
 	} else {
 		return errorNoSuchColl(coll)
 	}
