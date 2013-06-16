@@ -102,9 +102,8 @@ func (s *Store) Get(fullKey string) (*string, error) {
 	if err := checkKeyValid(fullKey); err != nil {
 		return nil, err
 	}
-	isColl := isCollectionKey(fullKey)
 
-	if isColl {
+	if isCollectionKey(fullKey) {
 		return nil, errorGetIsColl(fullKey)
 	}
 
@@ -125,9 +124,8 @@ func (s *Store) GetAll(coll string) ([]*string, error) {
 	if err := checkKeyValid(coll); err != nil {
 		return nil, err
 	}
-	isColl := isCollectionKey(coll)
 
-	if !isColl {
+	if !isCollectionKey(coll) {
 		return nil, errorGetAllIsNotColl(coll)
 	}
 
@@ -146,9 +144,8 @@ func (s *Store) Put(fullKey string, value *string) error {
 	if err := checkKeyValid(fullKey); err != nil {
 		return err
 	}
-	isColl := isCollectionKey(fullKey)
 
-	if isColl {
+	if isCollectionKey(fullKey) {
 		return errorPutIsColl(fullKey, *value)
 	}
 
@@ -169,9 +166,8 @@ func (s *Store) Delete(fullKey string) error {
 	if err := checkKeyValid(fullKey); err != nil {
 		return err
 	}
-	isColl := isCollectionKey(fullKey)
 
-	if isColl {
+	if isCollectionKey(fullKey) {
 		return errorDeleteIsColl(fullKey)
 	}
 
@@ -192,9 +188,8 @@ func (s *Store) DeleteAll(coll string) error {
 	if err := checkKeyValid(coll); err != nil {
 		return err
 	}
-	isColl := isCollectionKey(coll)
 
-	if !isColl {
+	if !isCollectionKey(coll) {
 		return errorDeleteAllIsNotColl(coll)
 	}
 

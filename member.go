@@ -112,7 +112,7 @@ func (m *member) delete(key string) {
 }
 
 func (m *member) deleteAll() {
-	// In this case, it males sense to just lock the whole map :
+	// In this case, it makes sense to just lock the whole map :
 	// we're deleting everything...
 	m.Lock()
 	for _, aPage := range m.entries {

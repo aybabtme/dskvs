@@ -19,16 +19,17 @@ func (e StoreError) Error() string {
 func errorStoreNotLoaded(s *Store) error {
 	return StoreError{
 		time.Now(),
-		fmt.Sprintf("Store with path <%s> has not been loaded yet",
+
+		fmt.Sprintf("Store with path <%s> has not yet been loaded",
 			s.storagePath),
 	}
 }
 
 // A PathError is returned when the path you provided is not suitable
-// for storage, either because of it's intrisic nature or because it is
+// for storage, either because of its intrisic nature or because it is
 // already in use by another storage.  In the latter case, you should
 // verify your code to ensure that you are not forgetting a storage
-// somewhere.
+// instance somewhere.
 type PathError struct {
 	When time.Time
 	What string

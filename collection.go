@@ -80,16 +80,19 @@ func (c *collections) deleteCollection(coll string) error {
 	c.RLock()
 	_, ok := c.members[coll]
 	c.RUnlock()
-	if !ok {
+
+	if ok {
 		c.Lock()
 		m, ok := c.members[coll]
 		delete(c.members, coll)
+		c.Unlock()
+		// Was deleted in between our read-lock and the current write-lock
 		if !ok {
-			c.Unlock()
 			return errorNoSuchColl(coll)
 		}
-		c.Unlock()
 
+		// TODO : This is not really necessary, can just delete the folder
+		// at once and save some IO.
 		m.deleteAll()
 		toDelete <- m
 	} else {
