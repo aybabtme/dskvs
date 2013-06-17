@@ -169,7 +169,7 @@ func TestMultipleOperations(t *testing.T) {
 func TestMultipleGoroutine(t *testing.T) {
 	var kvCount int
 	if testing.Short() {
-		kvCount = 100
+		kvCount = 1000
 	} else {
 		kvCount = 10000
 	}
