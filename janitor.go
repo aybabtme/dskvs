@@ -1,13 +1,7 @@
 package dskvs
 
 import (
-	"bytes"
-	"crypto/sha1"
-	"encoding/binary"
-	"io/ioutil"
 	"log"
-	"net/url"
-	"os"
 )
 
 type janitor struct {
@@ -20,6 +14,7 @@ type janitor struct {
 func newJanitor() janitor {
 	return janitor{
 		make(chan *page),
+		make(chan *member),
 		make(chan *member),
 		make(chan bool),
 	}

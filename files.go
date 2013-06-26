@@ -64,7 +64,8 @@ func writeToFile(dirty *page) {
 	dirty.RLock()
 	if dirty.isDeleted {
 		dirty.RUnlock()
-		return deleteFile(filename)
+		deleteFile(filename)
+		return
 	}
 
 	data, err := fromPageToBytes(dirty)
@@ -97,14 +98,14 @@ func readFromFile(filename string) (*page, error) {
 	if err != nil {
 		return nil, err
 	}
-	keyIndex := fileHeaderSize
+	keyIndex := uint64(fileHeaderSize)
 	payloadIndex := keyIndex + header.KeyNameLength
 	key := string(data[keyIndex:payloadIndex])
 	payload := data[payloadIndex:]
 
 	hash := sha1.New().Sum(payload)
 
-	checksum, size := binary.ReadUvarint(hash)
+	checksum, size := binary.Uvarint(hash)
 	if size == 0 {
 		log.Fatalf("Error reading file <%s> checksum, incomplete hash.",
 			filename)
@@ -139,7 +140,7 @@ func deleteFolder(delete *member) {
 	folderName := delete.coll
 	if err := os.RemoveAll(folderName); err != nil {
 		log.Printf("Couldn't delete folder and children at <%s> : %v",
-			filename, err)
+			folderName, err)
 	}
 }
 
@@ -182,7 +183,7 @@ func generateFilename(key string) string {
 	}
 
 	// Append checksum value to the end, avoids collisions
-	suffix := string(sha1.New().Sum(key))
+	suffix := string(sha1.New().Sum([]byte(key)))
 
 	return string(prefix) + suffix
 }
