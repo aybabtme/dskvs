@@ -1,12 +1,19 @@
 package dskvs
 
 import (
+	"bytes"
+	"crypto/sha1"
+	"encoding/binary"
+	"io/ioutil"
 	"log"
+	"net/url"
+	"os"
 )
 
 type janitor struct {
 	DirtyPages chan *page
 	ToDelete   chan *member
+	ToCreate   chan *member
 	mustDie    chan bool
 }
 
@@ -35,9 +42,11 @@ func (j *janitor) run() {
 		for {
 			select {
 			case dirty := <-j.DirtyPages:
-				updateFile(dirty)
+				writeToFile(dirty)
 			case delete := <-j.ToDelete:
 				deleteFolder(delete)
+			case create := <-j.ToCreate:
+				createFolder(create)
 			case <-j.mustDie:
 				log.Printf("janitor dying")
 				return
@@ -48,14 +57,4 @@ func (j *janitor) run() {
 
 func (j *janitor) die() {
 	j.mustDie <- true
-}
-
-func updateFile(dirty *page) {
-	log.Printf("updateFile(%s) called but not yet implemented",
-		dirty.key)
-}
-
-func deleteFolder(delete *member) {
-	log.Printf("deleteFolder(%s) called but not yet implemented",
-		delete.coll)
 }

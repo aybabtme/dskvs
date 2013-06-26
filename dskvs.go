@@ -19,6 +19,12 @@ import (
 	"sync"
 )
 
+const (
+	MAJOR_VERSION uint16 = 0
+	MINOR_VERSION uint16 = 1
+	PATCH_VERSION uint64 = 0
+)
+
 var (
 	storeExistsLock sync.RWMutex
 	storeExists     map[string]bool

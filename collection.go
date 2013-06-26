@@ -57,6 +57,7 @@ func (c *collections) put(coll, key string, value []byte) error {
 				coll, key, value, coll)
 			m = newMember(coll)
 			c.members[coll] = m
+			jan.ToCreate <- m
 		}
 		c.Unlock()
 	}
