@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"crypto/sha1"
 	"encoding/binary"
+	"encoding/hex"
 	"errors"
 	"io/ioutil"
 	"log"
@@ -13,7 +14,7 @@ import (
 
 const (
 	// Database files are read only
-	DB_PERMISSION = 0440
+	DB_PERMISSION = 0740
 )
 
 type fileHeader struct {
@@ -21,8 +22,8 @@ type fileHeader struct {
 	Minor         uint16
 	Patch         uint64
 	Checksum      uint64
-	PayloadLength uint64
 	KeyNameLength uint64
+	PayloadLength uint64
 }
 
 var (
@@ -50,8 +51,8 @@ func newFileHeader(aPage *page) *fileHeader {
 		MINOR_VERSION,
 		PATCH_VERSION,
 		checksum,
-		uint64(len(aPage.value)),
 		uint64(len([]byte(aPage.key))),
+		uint64(len(aPage.value)),
 	}
 }
 
@@ -112,7 +113,10 @@ func readFromFile(filename string) (*page, error) {
 	} else if size < 0 {
 		log.Fatal("Read too many bytes for checksum.")
 	} else if checksum != header.Checksum {
-		log.Printf("Payload checksum failed for file <%s>", filename)
+		log.Printf("Payload checksum failed for file <%s>. Header says <%v> bu checksum was <%v>",
+			filename,
+			header,
+			checksum)
 		return nil, FailedChecksumError
 	}
 
@@ -149,14 +153,14 @@ func deleteFolder(delete *member) {
 */
 
 func headerFromBytes(data []byte) (*fileHeader, error) {
-	var header *fileHeader
+	var header fileHeader
 	r := bytes.NewBuffer(data)
 	err := binary.Read(r, binary.BigEndian, &header)
 	if err != nil {
 		log.Printf("Error reading header from bytes : %v", err)
 		return nil, err
 	}
-	return header, err
+	return &header, err
 }
 
 func headerToBytes(header *fileHeader) ([]byte, error) {
@@ -174,16 +178,19 @@ func generateFilename(key string) string {
 	// url.QueryEscape incidentally escapes runes unsafe for a generateFilename
 	escaped := url.QueryEscape(key)
 
-	// Keep 20 first bytes for readability of generateFilename
-	var prefix []byte
+	// Keep 40 first bytes for readability of generateFilename
+	var max_length int
 	if len(escaped) > 40 {
-		prefix = []byte(escaped)[:40]
+		max_length = 40
 	} else {
-		prefix = []byte(escaped)
+		max_length = len(escaped)
 	}
 
+	prefix := []byte(escaped)[:max_length]
+
 	// Append checksum value to the end, avoids collisions
-	suffix := string(sha1.New().Sum([]byte(key)))
+	hash := sha1.New().Sum([]byte(key))
+	suffix := hex.EncodeToString(hash)
 
 	return string(prefix) + suffix
 }
