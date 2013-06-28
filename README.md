@@ -42,7 +42,7 @@ dozens of highly specialized data-store providing this sort of features,
 `dskvs` is not one of them.
 
 ## Status
-This project is not yet ready for production.
+This project is not yet ready for anybody's usage, it is still under development and has not been extensively tested.
 
 ## Usage
 `go get` the master branch.
