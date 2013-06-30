@@ -13,8 +13,7 @@ import (
 )
 
 const (
-	// Database files are read only
-	DB_PERMISSION = 0740
+	DB_PERMISSION = 0640
 )
 
 type fileHeader struct {
