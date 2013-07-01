@@ -17,9 +17,9 @@ type Data struct {
 	Descr string
 }
 
-/*
-	Boilerplate
-*/
+///////////////////////////////////////////////////////////////////////////////
+// Boilerplate
+///////////////////////////////////////////////////////////////////////////////
 
 func setUp(t *testing.T) *Store {
 	store, err := NewStore("./db")
@@ -53,9 +53,9 @@ func generateData(d Data, t *testing.T) []byte {
 	return dataBytes
 }
 
-/*
-	Common checks
-*/
+///////////////////////////////////////////////////////////////////////////////
+// Common checks
+///////////////////////////////////////////////////////////////////////////////
 
 func checkGetIsEmpty(store *Store, key string, t *testing.T) {
 	_, err := store.Get(key)
@@ -71,9 +71,11 @@ func checkGetIsEmpty(store *Store, key string, t *testing.T) {
 	}
 }
 
-/*
-	Test cases, single goroutine
-*/
+///////////////////////////////////////////////////////////////////////////////
+// Single goroutine
+///////////////////////////////////////////////////////////////////////////////
+
+// Normal cases
 
 func TestCreatingStore(t *testing.T) {
 	store := setUp(t)
@@ -225,9 +227,61 @@ func TestStorePersistDeleteAfterClose(t *testing.T) {
 
 }
 
-/*
-	Test cases, multiple goroutine
-*/
+// Error cases
+
+func TestErrorWhenStorePointToNonDirectoryPath(t *testing.T) {
+	filename := "test_regular_file"
+	_, err := os.Create(filename)
+	if err != nil {
+		t.Fatalf("Error creating test file, %v", err)
+	}
+	defer os.Remove(filename)
+
+	store, err := NewStore(filename)
+	if _, isRightType := err.(PathError); !isRightType {
+		defer tearDown(store, t)
+		t.Errorf("Should have returned an error of type PathError")
+	}
+
+}
+
+func TestErrorWhenStoreAlreadyUsingPath(t *testing.T) {
+	path := "a_busy_path"
+	store, err := NewStore(path)
+	if err != nil {
+		t.Fatalf("Error creating test store, %v", err)
+	}
+	if err := store.Load(); err != nil {
+		t.Fatalf("Error loading test store, %v", err)
+	}
+	defer tearDown(store, t)
+
+	another, err := NewStore(path)
+	if err != nil {
+		t.Fatalf("Error creating second test store, %v", err)
+	}
+	err = another.Load()
+	if _, isRightType := err.(PathError); !isRightType {
+		defer tearDown(another, t)
+		t.Errorf("Should have returned an error of type PathError")
+	}
+}
+
+func TestErrorWhenClosingStoreNotLoaded(t *testing.T) {
+	path := "a_busy_path"
+	store, err := NewStore(path)
+	if err != nil {
+		t.Fatalf("Error creating test store, %v", err)
+	}
+	err = store.Close()
+	if _, isRightType := err.(StoreError); !isRightType {
+		t.Errorf("Should have returned an error of type StoreError")
+	}
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// Multiple goroutine
+///////////////////////////////////////////////////////////////////////////////
 
 func TestMultipleGoroutine(t *testing.T) {
 	var kvCount int
