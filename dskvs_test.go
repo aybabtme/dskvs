@@ -90,12 +90,12 @@ func TestSingleOperation(t *testing.T) {
 
 	err := store.Put(key, expected)
 	if err != nil {
-		t.Fatalf("Error putting data in", err)
+		t.Fatalf("Error putting data in, %v", err)
 	}
 
 	actual, err := store.Get(key)
 	if err != nil {
-		t.Fatalf("Error getting data back", err)
+		t.Fatalf("Error getting data back, %v", err)
 	}
 
 	if !bytes.Equal(expected, actual) {
@@ -106,7 +106,7 @@ func TestSingleOperation(t *testing.T) {
 
 	err = store.Delete(key)
 	if err != nil {
-		t.Fatalf("Error deleting data we just put", err)
+		t.Fatalf("Error deleting data we just put, %v", err)
 	}
 
 	checkGetIsEmpty(store, key, t)
@@ -131,11 +131,11 @@ func TestMultipleOperations(t *testing.T) {
 
 		err := store.Put(key, expected)
 		if err != nil {
-			t.Errorf("Error putting data in", err)
+			t.Errorf("Error putting data in, %v", err)
 		}
 		actual, err = store.Get(key)
 		if err != nil {
-			t.Errorf("Error getting data back", err)
+			t.Errorf("Error getting data back, %v", err)
 		}
 
 		if !bytes.Equal(expected, actual) {
@@ -159,12 +159,70 @@ func TestMultipleOperations(t *testing.T) {
 
 	err = store.DeleteAll("artist")
 	if err != nil {
-		t.Fatal("Error deleting key", err)
+		t.Fatal("Error deleting key, %v", err)
 	}
 	for i := int(0); i < 10; i++ {
 		key = coll + CollKeySep + baseKey + strconv.Itoa(i)
 		checkGetIsEmpty(store, key, t)
 	}
+}
+
+func TestStorePersistPutAfterClose(t *testing.T) {
+	store := setUp(t)
+
+	key := "artist/the prodigy"
+	expected := generateData(Data{"Beyond the peak"}, t)
+
+	if err := store.Put(key, expected); err != nil {
+		tearDown(store, t)
+		t.Fatalf("Error putting data in, %v", err)
+	}
+
+	// Don't use tearDown as it deletes the storage after use
+	if err := store.Close(); err != nil {
+		t.Fatalf("Error closing store, %v", err)
+	}
+
+	otherStore := setUp(t)
+	defer tearDown(otherStore, t)
+
+	actual, err := otherStore.Get(key)
+	if err != nil {
+		t.Fatalf("Error getting data back, %v", err)
+	}
+	if !bytes.Equal(expected, actual) {
+		t.Fatalf("Expected <%s> but was <%s>",
+			expected,
+			actual)
+	}
+}
+
+func TestStorePersistDeleteAfterClose(t *testing.T) {
+	store := setUp(t)
+
+	key := "artist/the prodigy"
+	expected := generateData(Data{"Beyond the peak"}, t)
+
+	if err := store.Put(key, expected); err != nil {
+		tearDown(store, t)
+		t.Fatalf("Error putting value in, %v", err)
+	}
+
+	if err := store.Delete(key); err != nil {
+		tearDown(store, t)
+		t.Fatalf("Error deleting value, %v", err)
+	}
+
+	// Don't use tearDown as it deletes the storage after use
+	if err := store.Close(); err != nil {
+		t.Fatalf("Error closing store, %v", err)
+	}
+
+	otherStore := setUp(t)
+	defer tearDown(otherStore, t)
+
+	checkGetIsEmpty(otherStore, key, t)
+
 }
 
 /*
