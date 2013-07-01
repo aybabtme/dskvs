@@ -2,24 +2,20 @@ package dskvs
 
 import (
 	"fmt"
-	"time"
 )
 
 // A StoreError is returned when the store you try to use is not properly
 // setup.
 type StoreError struct {
-	When time.Time
 	What string
 }
 
 func (e StoreError) Error() string {
-	return fmt.Sprintf("%v: %v", e.When, e.What)
+	return e.What
 }
 
 func errorStoreNotLoaded(s *Store) error {
 	return StoreError{
-		time.Now(),
-
 		fmt.Sprintf("Store with path <%s> has not yet been loaded",
 			s.storagePath),
 	}
@@ -31,25 +27,25 @@ func errorStoreNotLoaded(s *Store) error {
 // verify your code to ensure that you are not forgetting a storage
 // instance somewhere.
 type PathError struct {
-	When time.Time
 	What string
+	Path string
 }
 
 func (e PathError) Error() string {
-	return fmt.Sprintf("%v: %v", e.When, e.What)
+	return fmt.Sprintf("%v, path=%v", e.What, e.Path)
 }
 
 func errorPathInUse(path string) error {
 	return PathError{
-		time.Now(),
-		fmt.Sprintf("Path <%s> is already used by another Store", path),
+		"Path is already used by another Store",
+		path,
 	}
 }
 
 func errorPathInvalid(path string) error {
 	return PathError{
-		time.Now(),
-		fmt.Sprintf("String <%s> is not a valid path", path),
+		"String is not a valid path",
+		path,
 	}
 }
 
@@ -57,12 +53,12 @@ func errorPathInvalid(path string) error {
 // key due to its nature, or is not appropriate for the method on which
 // you use it.
 type KeyError struct {
-	When time.Time
 	What string
+	Key  string
 }
 
 func (e KeyError) Error() string {
-	return fmt.Sprintf("%v: %v", e.When, e.What)
+	return fmt.Sprintf("%v, key=%v", e.What, e.Key)
 }
 
 /*
@@ -71,36 +67,36 @@ func (e KeyError) Error() string {
 
 func errorNoColl(key string) error {
 	return KeyError{
-		time.Now(),
-		fmt.Sprintf("key<%s> has no collection identifier", key),
+		"key has no collection identifier",
+		key,
 	}
 }
 
 func errorNoKey(key string) error {
 	return KeyError{
-		time.Now(),
-		fmt.Sprintf("key<%s> has no member identifier", key),
+		"key has no member identifier",
+		key,
 	}
 }
 
 func errorEmptyKey() error {
 	return KeyError{
-		time.Now(),
-		fmt.Sprintf("key is empty"),
+		"key is empty",
+		"<empty string>",
 	}
 }
 
 func errorNoSuchKey(key string) error {
 	return KeyError{
-		time.Now(),
-		fmt.Sprintf("key<%s> has no value", key),
+		"key holds no value in this store",
+		key,
 	}
 }
 
 func errorNoSuchColl(key string) error {
 	return KeyError{
-		time.Now(),
-		fmt.Sprintf("key<%s> has no value", key),
+		"key does not represent a collection in this store",
+		key,
 	}
 }
 
@@ -110,40 +106,35 @@ func errorNoSuchColl(key string) error {
 
 func errorGetIsColl(key string) error {
 	return KeyError{
-		time.Now(),
-		fmt.Sprintf("key <%s> requested a Get on a collection",
-			key),
+		"key requested a Get on a collection, wrong method",
+		key,
 	}
 }
 
 func errorGetAllIsNotColl(key string) error {
 	return KeyError{
-		time.Now(),
-		fmt.Sprintf("key <%s> requested a GetAll for only a member",
-			key),
+		"key requested a GetAll for only a member, wrong method",
+		key,
 	}
 }
 
 func errorPutIsColl(key, val string) error {
 	return KeyError{
-		time.Now(),
-		fmt.Sprintf("key,val <%s,%s> requested a Put on a collection",
-			key),
+		"<key,val> requested a Put on a collection, wrong method",
+		fmt.Sprintf("<%s,%s>", key, val),
 	}
 }
 
 func errorDeleteIsColl(key string) error {
 	return KeyError{
-		time.Now(),
-		fmt.Sprintf("key <%s> requested a Delete on a collection",
-			key),
+		"key requested a Delete on a collection, wrong method",
+		key,
 	}
 }
 
 func errorDeleteAllIsNotColl(key string) error {
 	return KeyError{
-		time.Now(),
-		fmt.Sprintf("key <%s> requested a DeleteAll for only a member",
-			key),
+		"key requested a DeleteAll for only a member, wrong method",
+		key,
 	}
 }
