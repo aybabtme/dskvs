@@ -263,11 +263,12 @@ func TestErrorWhenStoreAlreadyUsingPath(t *testing.T) {
 	err = another.Load()
 	if _, isRightType := err.(PathError); !isRightType {
 		defer tearDown(another, t)
-		t.Errorf("Should have returned an error of type PathError")
+		t.Errorf("Should have returned an error of type PathError, was %v",
+			err)
 	}
 }
 
-func TestErrorWhenClosingStoreNotLoaded(t *testing.T) {
+func TestErrorWhenStoreNotLoaded(t *testing.T) {
 	path := "a_busy_path"
 	store, err := NewStore(path)
 	if err != nil {
@@ -275,8 +276,40 @@ func TestErrorWhenClosingStoreNotLoaded(t *testing.T) {
 	}
 	err = store.Close()
 	if _, isRightType := err.(StoreError); !isRightType {
-		t.Errorf("Should have returned an error of type StoreError")
+		t.Errorf("Should have returned an error of type StoreError, was %v",
+			err)
 	}
+
+	_, err = store.Get("coll/key")
+	if _, isRightType := err.(StoreError); !isRightType {
+		t.Errorf("Should have returned an error of type StoreError, was %v",
+			err)
+	}
+
+	_, err = store.GetAll("coll")
+	if _, isRightType := err.(StoreError); !isRightType {
+		t.Errorf("Should have returned an error of type StoreError, was %v",
+			err)
+	}
+
+	err = store.Put("coll/key", nil)
+	if _, isRightType := err.(StoreError); !isRightType {
+		t.Errorf("Should have returned an error of type StoreError, was %v",
+			err)
+	}
+
+	err = store.Delete("coll/key")
+	if _, isRightType := err.(StoreError); !isRightType {
+		t.Errorf("Should have returned an error of type StoreError, was %v",
+			err)
+	}
+
+	err = store.DeleteAll("coll")
+	if _, isRightType := err.(StoreError); !isRightType {
+		t.Errorf("Should have returned an error of type StoreError, was %v",
+			err)
+	}
+
 }
 
 ///////////////////////////////////////////////////////////////////////////////
