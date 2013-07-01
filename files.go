@@ -58,7 +58,6 @@ func newFileHeader(aPage *page) *fileHeader {
 }
 
 func writeToFile(dirty *page) {
-
 	// Don't need to lock the page before reading the key, it's only modified
 	// when `page` are created
 	filename := generateFilename(dirty)
@@ -69,15 +68,22 @@ func writeToFile(dirty *page) {
 		deleteFile(filename)
 		return
 	}
+	dirty.RUnlock()
 
 	data, err := fromPageToBytes(dirty)
-	dirty.RUnlock()
+
 	if err != nil {
 		log.Printf("Couldn't get data from page: %v", err)
 		return
 	}
 
 	dirty.Lock()
+	if dirty.isDeleted {
+		// Was requested for deletion right after we tested
+		dirty.Unlock()
+		writeToFile(dirty)
+		return
+	}
 	dirty.isDirty = false
 	dirty.Unlock()
 
@@ -135,7 +141,11 @@ func readFromFile(filename string) (*page, error) {
 }
 
 func deleteFile(filename string) {
-	if err := os.Remove(filename); err != nil {
+	err := os.Remove(filename)
+	if os.IsNotExist(err) {
+		log.Printf("Request to delete was already processed for file <%s>",
+			filepath.Base(filename))
+	} else if err != nil {
 		log.Printf("Couldn't delete file <%s> : %v", filename, err)
 	}
 }

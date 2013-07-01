@@ -97,18 +97,18 @@ func (s *Store) Close() error {
 	if !s.isLoaded {
 		return errorStoreNotLoaded(s)
 	}
+
+	s.isLoaded = false
+
 	storeExistsLock.Lock()
 	delete(storeExists, s.storagePath)
 	storeExistsLock.Unlock()
 
-	// TODO wait for the janitor to finish writing
 	err := jan.unloadStore(s)
 	if err != nil {
+		jan.die()
 		return err
 	}
-	jan.die()
-
-	s.isLoaded = false
 
 	return nil
 }
