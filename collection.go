@@ -7,12 +7,14 @@ import (
 
 type collections struct {
 	sync.RWMutex
-	members map[string]*member
+	basepath string
+	members  map[string]*member
 }
 
-func newCollections() *collections {
+func newCollections(basepath string) *collections {
 	return &collections{
-		members: make(map[string]*member),
+		basepath: basepath,
+		members:  make(map[string]*member),
 	}
 }
 
@@ -55,7 +57,7 @@ func (c *collections) put(coll, key string, value []byte) error {
 		if !stillOk {
 			log.Printf("put(\"%s\", \"%s\", %s) didn't exist for coll='%s'",
 				coll, key, value, coll)
-			m = newMember(coll)
+			m = newMember(c.basepath, coll)
 			c.members[coll] = m
 			jan.ToCreate <- m
 		}

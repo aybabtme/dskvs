@@ -58,10 +58,11 @@ func NewStore(path string) (*Store, error) {
 		return nil, errorPathInvalid(path)
 	}
 
+	basepath := expandPath(path)
 	return &Store{
-		false,            // isLoaded
-		expandPath(path), // storagePath
-		newCollections(), // collections
+		false,                    // isLoaded
+		basepath,                 // storagePath
+		newCollections(basepath), // collections
 	}, nil
 }
 

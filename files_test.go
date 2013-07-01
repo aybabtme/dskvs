@@ -3,6 +3,7 @@ package dskvs
 import (
 	"bytes"
 	"os"
+	"path/filepath"
 	"testing"
 )
 
@@ -10,6 +11,8 @@ func TestWriteAndReadDirtyPage(t *testing.T) {
 	expected := &page{
 		isDirty:   true,
 		isDeleted: false,
+		basepath:  "imdb1",
+		coll:      "FMJ",
 		key:       "Is that you, John Wayne? Is this me?",
 		value: []byte(`Who said that? WHO THE FUCK said that?! Who's the slimy
 commode of shit twinkle toed cocksucker just signed his own death warrant?!
@@ -18,7 +21,10 @@ PT you all until you fucking DIE! I will PT you until your assholes are
 sucking buttermilk!`),
 	}
 
-	filename := generateFilename(expected.key)
+	filename := generateFilename(expected)
+	os.MkdirAll(filepath.Dir(filename), DIR_PERM)
+	defer os.RemoveAll(expected.basepath)
+
 	writeToFile(expected)
 
 	// Make sure to clean up if something goes wrong
@@ -75,6 +81,8 @@ func TestDeletedPageDeleteFile(t *testing.T) {
 	expected := &page{
 		isDirty:   true,
 		isDeleted: false,
+		basepath:  "imdb1",
+		coll:      "FMJ",
 		key:       "Is that you, John Wayne? Is this me?",
 		value: []byte(`Who said that? WHO THE FUCK said that?! Who's the slimy
 commode of shit twinkle toed cocksucker just signed his own death warrant?!
@@ -83,9 +91,11 @@ PT you all until you fucking DIE! I will PT you until your assholes are
 sucking buttermilk!`),
 	}
 
-	filename := generateFilename(expected.key)
+	filename := generateFilename(expected)
+	os.MkdirAll(filepath.Dir(filename), DIR_PERM)
+	defer os.RemoveAll(expected.basepath)
+
 	writeToFile(expected)
-	defer os.Remove(filename)
 
 	actual, err := readFromFile(filename)
 	if err != nil {

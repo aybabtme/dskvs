@@ -7,15 +7,17 @@ import (
 // A member is a map protected by a RW lock to prevent concurrent
 // modificiations
 type member struct {
-	coll    string
-	entries map[string]*page
+	basepath string
+	coll     string
+	entries  map[string]*page
 	sync.RWMutex
 }
 
-func newMember(coll string) *member {
+func newMember(basepath, coll string) *member {
 	return &member{
-		coll:    coll,
-		entries: make(map[string]*page),
+		basepath: basepath,
+		coll:     coll,
+		entries:  make(map[string]*page),
 	}
 }
 
@@ -87,7 +89,7 @@ func (m *member) put(key string, value []byte) {
 		aPage, ok = m.entries[key]
 		if !ok {
 			// It was not so go ahead and write a new entry
-			aPage = newPage(key)
+			aPage = newPage(m.basepath, m.coll, key)
 			m.entries[key] = aPage
 		}
 		m.Unlock()

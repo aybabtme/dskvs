@@ -10,10 +10,12 @@ import (
 	"log"
 	"net/url"
 	"os"
+	"path/filepath"
 )
 
 const (
-	DB_PERMISSION = 0640
+	FILE_PERM = 0640
+	DIR_PERM  = 0740
 )
 
 type fileHeader struct {
@@ -59,7 +61,7 @@ func writeToFile(dirty *page) {
 
 	// Don't need to lock the page before reading the key, it's only modified
 	// when `page` are created
-	filename := generateFilename(dirty.key)
+	filename := generateFilename(dirty)
 	// Lock the page for read
 	dirty.RLock()
 	if dirty.isDeleted {
@@ -79,7 +81,7 @@ func writeToFile(dirty *page) {
 	dirty.isDirty = false
 	dirty.Unlock()
 
-	if err := ioutil.WriteFile(filename, data, DB_PERMISSION); err != nil {
+	if err := ioutil.WriteFile(filename, data, FILE_PERM); err != nil {
 		log.Printf("Couldn't write file <%s> : %v", filename, err)
 		return
 	}
@@ -119,9 +121,14 @@ func readFromFile(filename string) (*page, error) {
 		return nil, FailedChecksumError
 	}
 
+	basepath := filepath.Base(filepath.Dir(filepath.Dir(filename)))
+	coll := filepath.Base(filepath.Dir(filename))
+
 	return &page{
 		isDirty:   false,
 		isDeleted: false,
+		basepath:  basepath,
+		coll:      coll,
 		key:       key,
 		value:     payload,
 	}, nil
@@ -134,13 +141,14 @@ func deleteFile(filename string) {
 }
 
 func createFolder(create *member) {
-	if err := os.Mkdir(create.coll, DB_PERMISSION); err != nil {
-		log.Printf("Couldn't create directory <%s> : %v", create.coll, err)
+	folderName := filepath.Join(create.basepath, create.coll)
+	if err := os.MkdirAll(folderName, DIR_PERM); err != nil {
+		log.Printf("Couldn't create directory <%s> : %v", folderName, err)
 	}
 }
 
 func deleteFolder(delete *member) {
-	folderName := delete.coll
+	folderName := filepath.Join(delete.basepath, delete.coll)
 	if err := os.RemoveAll(folderName); err != nil {
 		log.Printf("Couldn't delete folder and children at <%s> : %v",
 			folderName, err)
@@ -172,10 +180,10 @@ func headerToBytes(header *fileHeader) ([]byte, error) {
 	return w.Bytes(), nil
 }
 
-func generateFilename(key string) string {
+func generateFilename(aPage *page) string {
 
 	// url.QueryEscape incidentally escapes runes unsafe for a generateFilename
-	escaped := url.QueryEscape(key)
+	escaped := url.QueryEscape(aPage.key)
 
 	// Keep 40 first bytes for readability of generateFilename
 	var max_length int
@@ -188,10 +196,10 @@ func generateFilename(key string) string {
 	prefix := []byte(escaped)[:max_length]
 
 	// Append checksum value to the end, avoids collisions
-	hash := sha1.New().Sum([]byte(key))
+	hash := sha1.New().Sum([]byte(aPage.key))
 	suffix := hex.EncodeToString(hash)
 
-	return string(prefix) + suffix
+	return filepath.Join(aPage.basepath, aPage.coll, string(prefix)+suffix)
 }
 
 func fromPageToBytes(aPage *page) ([]byte, error) {

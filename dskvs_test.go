@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"os"
 	"runtime"
 	"strconv"
 	"sync"
@@ -23,12 +24,12 @@ type Data struct {
 func setUp(t *testing.T) *Store {
 	store, err := NewStore("./db")
 	if err != nil {
-		t.Fatalf("Error creating store", err)
+		t.Fatalf("Error creating store, %v", err)
 	}
 
 	err = store.Load()
 	if err != nil {
-		t.Fatalf("Error loading store", err)
+		t.Fatalf("Error loading store, %v", err)
 	}
 	return store
 }
@@ -36,14 +37,18 @@ func setUp(t *testing.T) *Store {
 func tearDown(store *Store, t *testing.T) {
 	err := store.Close()
 	if err != nil {
-		t.Fatalf("Error closing store", err)
+		t.Fatalf("Error closing store, %v", err)
+	}
+	err = os.RemoveAll(store.storagePath)
+	if err != nil {
+		t.Fatalf("Error deleting storage path, %v", err)
 	}
 }
 
 func generateData(d Data, t *testing.T) []byte {
 	dataBytes, err := json.Marshal(d)
 	if err != nil {
-		t.Fatal("Error with test data", err)
+		t.Fatal("Error with test data, %v", err)
 	}
 	return dataBytes
 }

@@ -7,15 +7,19 @@ import (
 type page struct {
 	isDirty   bool
 	isDeleted bool
+	basepath  string
+	coll      string
 	key       string
 	value     []byte
 	sync.RWMutex
 }
 
-func newPage(key string) *page {
+func newPage(basepath, coll, key string) *page {
 	return &page{
 		isDirty:   false,
 		isDeleted: false,
+		basepath:  basepath,
+		coll:      coll,
 		key:       key,
 		value:     nil,
 	}
