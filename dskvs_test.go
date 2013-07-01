@@ -312,6 +312,153 @@ func TestErrorWhenStoreNotLoaded(t *testing.T) {
 
 }
 
+func TestErrorWhenKeyGivenToGetIsMissingMember(t *testing.T) {
+	keyWithoutMember := "a collection only"
+	store := setUp(t)
+	defer tearDown(store, t)
+
+	_, err := store.Get(keyWithoutMember)
+	if _, isRightType := err.(KeyError); !isRightType {
+		t.Errorf("Should have returned an error of type KeyError, was %v",
+			err)
+	}
+}
+
+func TestErrorWhenKeyGivenToGetAllHasMember(t *testing.T) {
+	keyWithMember := "a collection/with a member key"
+	store := setUp(t)
+	defer tearDown(store, t)
+
+	_, err := store.GetAll(keyWithMember)
+	if _, isRightType := err.(KeyError); !isRightType {
+		t.Errorf("Should have returned an error of type KeyError, was %v",
+			err)
+	}
+}
+
+func TestErrorWhenKeyGivenToPutIsMissingMember(t *testing.T) {
+	keyWithoutMember := "a collection only"
+	store := setUp(t)
+	defer tearDown(store, t)
+
+	err := store.Put(keyWithoutMember, nil)
+	if _, isRightType := err.(KeyError); !isRightType {
+		t.Errorf("Should have returned an error of type KeyError, was %v",
+			err)
+	}
+}
+
+func TestErrorWhenKeyGivenToDeleteIsMissingMember(t *testing.T) {
+	keyWithoutMember := "a collection only"
+	store := setUp(t)
+	defer tearDown(store, t)
+
+	err := store.Delete(keyWithoutMember)
+	if _, isRightType := err.(KeyError); !isRightType {
+		t.Errorf("Should have returned an error of type KeyError, was %v",
+			err)
+	}
+}
+
+func TestErrorWhenKeyGivenToDeleteAllHasMember(t *testing.T) {
+	keyWithMember := "a collection/with a member key"
+	store := setUp(t)
+	defer tearDown(store, t)
+
+	err := store.DeleteAll(keyWithMember)
+	if _, isRightType := err.(KeyError); !isRightType {
+		t.Errorf("Should have returned an error of type KeyError, was %v",
+			err)
+	}
+}
+
+var invalidKeys = []string{
+	"",
+	"/a member",
+	"acoll/",
+}
+
+func TestErrorWhenKeyGivenToGetIsInvalid(t *testing.T) {
+	store := setUp(t)
+	defer tearDown(store, t)
+
+	for _, key := range invalidKeys {
+		_, err := store.Get(key)
+		if _, isRightType := err.(KeyError); !isRightType {
+			t.Errorf("Should have returned an error of type KeyError"+
+				"key was <%v>, error was %v",
+				key,
+				err)
+		}
+	}
+}
+
+func TestErrorWhenKeyGivenToGetAllIsInvalid(t *testing.T) {
+	store := setUp(t)
+	defer tearDown(store, t)
+
+	for _, key := range invalidKeys {
+		_, err := store.GetAll(key)
+		if _, isRightType := err.(KeyError); !isRightType {
+			t.Errorf("Should have returned an error of type KeyError"+
+				"key was <%v>, error was %v",
+				key,
+				err)
+		}
+	}
+}
+
+func TestErrorWhenKeyGivenToPutIsInvalid(t *testing.T) {
+	store := setUp(t)
+	defer tearDown(store, t)
+
+	for _, key := range invalidKeys {
+		err := store.Put(key, nil)
+		if _, isRightType := err.(KeyError); !isRightType {
+			t.Errorf("Should have returned an error of type KeyError"+
+				"key was <%v>, error was %v",
+				key,
+				err)
+		}
+	}
+}
+
+func TestErrorWhenKeyGivenToDeleteIsInvalid(t *testing.T) {
+
+	store := setUp(t)
+	defer tearDown(store, t)
+
+	for _, key := range invalidKeys {
+		err := store.Delete(key)
+		if _, isRightType := err.(KeyError); !isRightType {
+			t.Errorf("Should have returned an error of type KeyError"+
+				"key was <%v>, error was %v",
+				key,
+				err)
+		}
+	}
+}
+
+func TestErrorWhenKeyGivenToDeleteAllIsInvalid(t *testing.T) {
+	invalidKeys := []string{
+		"",
+		"/a member",
+		"acoll/",
+	}
+	store := setUp(t)
+	defer tearDown(store, t)
+
+	for _, key := range invalidKeys {
+		err := store.DeleteAll(key)
+		if _, isRightType := err.(KeyError); !isRightType {
+			t.Errorf("Should have returned an error of type KeyError"+
+				"key was <%v>, error was %v",
+				key,
+				err)
+		}
+	}
+}
+
 ///////////////////////////////////////////////////////////////////////////////
 // Multiple goroutine
 ///////////////////////////////////////////////////////////////////////////////
