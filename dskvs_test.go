@@ -440,11 +440,7 @@ func TestErrorWhenKeyGivenToDeleteIsInvalid(t *testing.T) {
 }
 
 func TestErrorWhenKeyGivenToDeleteAllIsInvalid(t *testing.T) {
-	invalidKeys := []string{
-		"",
-		"/a member",
-		"acoll/",
-	}
+
 	store := setUp(t)
 	defer tearDown(store, t)
 

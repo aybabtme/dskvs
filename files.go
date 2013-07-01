@@ -5,7 +5,6 @@ import (
 	"crypto/sha1"
 	"encoding/binary"
 	"encoding/hex"
-	"errors"
 	"io/ioutil"
 	"log"
 	"net/url"
@@ -29,9 +28,6 @@ type fileHeader struct {
 
 var (
 	fileHeaderSize int = binary.Size(new(fileHeader))
-	// Happens if a file read by dskvs has a payload inconsistent with its
-	// checksum
-	FailedChecksumError = errors.New("Failed checksum check, corrupted")
 )
 
 func newFileHeader(aPage *page) *fileHeader {
@@ -104,12 +100,24 @@ func readFromFile(filename string) (*page, error) {
 
 	header, err := headerFromBytes(data)
 	if err != nil {
-		return nil, err
+		return nil, errorCreatingHeader(filename, err)
 	}
+
+	// Fileformat is garanteed within same major versions
+	if header.Major > MAJOR_VERSION {
+		return nil, errorWrongVersion(header.Major, header.Minor, header.Patch)
+	}
+
 	keyIndex := uint64(fileHeaderSize)
 	payloadIndex := keyIndex + header.KeyNameLength
 	key := string(data[keyIndex:payloadIndex])
 	payload := data[payloadIndex:]
+
+	if uint64(len(data[payloadIndex:])) != header.PayloadLength {
+		return nil, errorPayloadWrongSize(filename,
+			header.PayloadLength,
+			len(data[payloadIndex:]))
+	}
 
 	hash := sha1.New().Sum(payload)
 
@@ -120,11 +128,12 @@ func readFromFile(filename string) (*page, error) {
 	} else if size < 0 {
 		log.Fatal("Read too many bytes for checksum.")
 	} else if checksum != header.Checksum {
-		log.Printf("Payload checksum failed for file <%s>. Header says <%v> bu checksum was <%v>",
+		log.Printf("Payload checksum failed for file <%s>. Header says <%v>"+
+			" but checksum was <%v>",
 			filename,
 			header,
 			checksum)
-		return nil, FailedChecksumError
+		return nil, errorFailedChecksum(filename)
 	}
 
 	basepath := filepath.Base(filepath.Dir(filepath.Dir(filename)))
