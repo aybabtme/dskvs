@@ -2,6 +2,8 @@ package dskvs
 
 import (
 	"log"
+	"os"
+	"path/filepath"
 	"strings"
 )
 
@@ -42,11 +44,30 @@ func splitKeys(fullKey string) (string, string, error) {
 }
 
 func isValidPath(path string) bool {
-	log.Printf("isValidPath(%s) called but not yet implemented", path)
-	return true
+	absPath, err := filepath.Abs(path)
+	if err != nil {
+		log.Printf("Could not get absolute filepath %v", err)
+		return false
+	}
+
+	stat, err := os.Stat(absPath)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return true
+		} else {
+			log.Printf("Could not get stat %v", err)
+			return false
+		}
+	}
+
+	return stat.IsDir()
 }
 
 func expandPath(path string) string {
-	log.Printf("expandPath(%s) called but not yet implemented", path)
-	return ""
+	absPath, err := filepath.Abs(path)
+	if err != nil {
+		panic(err)
+	}
+
+	return absPath
 }
