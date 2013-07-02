@@ -32,8 +32,9 @@ func tearDownBench(store *Store, b *testing.B) {
 }
 
 func benchPut(valSize int, b *testing.B) {
-	if testing.Short() {
+	if testing.Short() && valSize > 100 {
 		b.Skip("Skipping put benchmarks")
+		return
 	}
 
 	b.ReportAllocs()
@@ -47,7 +48,7 @@ func benchPut(valSize int, b *testing.B) {
 	keyList := make([]string, b.N)
 	for i := 0; i < b.N; i++ {
 		key := baseKey + strconv.Itoa(i)
-		keyList = append(keyList, key)
+		keyList[i] = key
 	}
 	b.ResetTimer()
 	for _, key := range keyList {
@@ -96,8 +97,9 @@ func BenchmarkPut1MB(b *testing.B) {
 }
 
 func benchGet(valSize int, b *testing.B) {
-	if testing.Short() {
+	if testing.Short() && valSize > 100 {
 		b.Skip("Skipping get benchmarks")
+		return
 	}
 
 	fmt.Printf("N=%d\n", b.N)
@@ -161,4 +163,73 @@ func BenchmarkGet400KB(b *testing.B) {
 
 func BenchmarkGet1MB(b *testing.B) {
 	benchGet(1000000, b)
+}
+
+func benchDelete(valSize int, b *testing.B) {
+	if testing.Short() && valSize > 100 {
+		b.Skip("Skipping delete benchmarks")
+		return
+	}
+
+	fmt.Printf("N=%d\n", b.N)
+
+	b.ReportAllocs()
+	store := setUpBench(b)
+	defer tearDownBench(store, b)
+	baseKey := "hello/hello"
+	val := make([]byte, valSize)
+	for i := int(0); i < valSize; i++ {
+		val[i] = uint8(i % 256)
+	}
+
+	keyList := make([]string, b.N)
+	for i := 0; i < b.N; i++ {
+		key := baseKey + strconv.Itoa(i)
+		keyList[i] = key
+		store.Put(key, val)
+	}
+	b.ResetTimer()
+	for _, key := range keyList {
+		err := store.Delete(key)
+		if err != nil {
+			b.Errorf("Get has error %v", err)
+		}
+	}
+	b.StopTimer()
+}
+
+func BenchmarkDelete100B(b *testing.B) {
+	benchDelete(100, b)
+}
+
+func BenchmarkDelete400B(b *testing.B) {
+	benchDelete(400, b)
+}
+
+func BenchmarkDelete1KB(b *testing.B) {
+	benchDelete(1000, b)
+}
+
+func BenchmarkDelete4KB(b *testing.B) {
+	benchDelete(4000, b)
+}
+
+func BenchmarkDelete10KB(b *testing.B) {
+	benchDelete(10000, b)
+}
+
+func BenchmarkDelete40KB(b *testing.B) {
+	benchDelete(40000, b)
+}
+
+func BenchmarkDelete100KB(b *testing.B) {
+	benchDelete(100000, b)
+}
+
+func BenchmarkDelete400KB(b *testing.B) {
+	benchDelete(400000, b)
+}
+
+func BenchmarkDelete1MB(b *testing.B) {
+	benchDelete(1000000, b)
 }
