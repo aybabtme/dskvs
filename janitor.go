@@ -27,19 +27,15 @@ func newJanitor() janitor {
 
 func (j *janitor) loadStore(s *Store) error {
 
-	log.Printf("Loading existing data")
-
 	basepath := s.storagePath
 	possibleColl, err := ioutil.ReadDir(basepath)
 	if os.IsNotExist(err) {
-		log.Printf("Store path is empty, starting with fresh persistence.")
 		return nil
 	} else if err != nil {
 		log.Printf("Can't list directory at path %s: %v", basepath, err)
 		return err
 	}
 
-	log.Printf("... scanning collections")
 	var memberPathList []string
 	var memberPath string
 	for _, file := range possibleColl {
@@ -50,7 +46,6 @@ func (j *janitor) loadStore(s *Store) error {
 		}
 	}
 
-	log.Printf("... loading values into collections")
 	var aPage *page
 	var pagePath string
 	for _, member := range memberPathList {
@@ -76,16 +71,13 @@ func (j *janitor) loadStore(s *Store) error {
 			s.coll.members[aPage.coll].entries[aPage.key] = aPage
 		}
 	}
-	log.Printf("Done loading existing data")
 	return nil
 }
 
 func (j *janitor) unloadStore(s *Store) error {
 
 	j.die()
-	log.Printf("Janitor blocking caller until done writing last changes")
 	<-j.blockUntilFinished
-	log.Printf("Janitor done writing last changes")
 
 	return nil
 }
@@ -134,6 +126,5 @@ func (j *janitor) run() {
 }
 
 func (j *janitor) die() {
-	log.Printf("Janitor will die")
 	j.mustDie <- true
 }
