@@ -31,7 +31,6 @@ func (p *page) get() []byte {
 	if p.isDeleted {
 		return nil
 	}
-	// return p.value
 	data := make([]byte, len(p.value))
 	copy(data, p.value)
 	return data
@@ -44,7 +43,6 @@ func (p *page) set(value []byte) {
 	defer p.Unlock()
 	wasDirty := p.isDirty
 	p.value = data
-	//p.value = value
 	p.isDirty = true
 	if !wasDirty {
 		jan.DirtyPages <- p
