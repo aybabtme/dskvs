@@ -37,8 +37,7 @@ func newFileHeader(aPage *page) *fileHeader {
 	if size == 0 {
 		log.Fatalf("Hash too small to produce uint64: %s", hash)
 	} else if size < 0 {
-		log.Printf("Hash to uint64 resulted in overflow. hash=%s, uint64=%d, overflow size=%d",
-			hash,
+		log.Printf("Hash to uint64 resulted in overflow. uint64=%d, overflow size=%d",
 			checksum,
 			size)
 	}
