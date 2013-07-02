@@ -1,7 +1,6 @@
 package dskvs
 
 import (
-	"log"
 	"sync"
 )
 
@@ -55,7 +54,6 @@ func (c *collections) put(coll, key string, value []byte) error {
 		c.Lock()
 		_, stillOk := c.members[coll]
 		if !stillOk {
-			log.Printf("Creating new collection <%s>", coll)
 			m = newMember(c.basepath, coll)
 			c.members[coll] = m
 			jan.ToCreate <- m

@@ -227,6 +227,143 @@ func TestStorePersistDeleteAfterClose(t *testing.T) {
 
 }
 
+func TestMultipleOperationsPersistAfterClose(t *testing.T) {
+
+	var kvCount int
+	if testing.Short() {
+		kvCount = 10
+	} else {
+		kvCount = 100
+	}
+
+	store := setUp(t)
+
+	coll := "artist"
+	baseKey := "daftpunk"
+
+	type Pair struct {
+		key   string
+		value []byte
+	}
+	var expectedList []Pair
+
+	for i := int(0); i < kvCount; i++ {
+		for j := int(0); j < kvCount; j++ {
+
+			var pair Pair
+			pair.key = coll +
+				strconv.Itoa(i) +
+				CollKeySep +
+				baseKey +
+				strconv.Itoa(j)
+
+			pair.value = generateData(Data{"The peak of awesome" + strconv.Itoa(i)}, t)
+
+			err := store.Put(pair.key, pair.value)
+			if err != nil {
+				t.Errorf("Error putting data in, %v", err)
+			}
+
+			expectedList = append(expectedList, pair)
+		}
+	}
+
+	// Don't use tearDown as it deletes the storage after use
+	if err := store.Close(); err != nil {
+		t.Fatalf("Error closing store, %v", err)
+	}
+
+	anotherStore := setUp(t)
+	defer tearDown(anotherStore, t)
+
+	for _, pair := range expectedList {
+		actual, err := anotherStore.Get(pair.key)
+		if err != nil {
+			t.Fatalf("Failed getting value with key <%s> back, %v",
+				pair.key, err)
+		}
+
+		if !bytes.Equal(pair.value, actual) {
+			t.Errorf("Expected <%s> but was <%s>",
+				pair.value,
+				actual)
+		}
+	}
+}
+
+// Correctness
+
+func TestGivenDataShouldBeCopied(t *testing.T) {
+	store := setUp(t)
+	defer tearDown(store, t)
+	key := "a coll/a key"
+	expected := []byte{
+		0x00, 0x00, 0x00, 0x00,
+	}
+	modified := make([]byte, len(expected))
+	copy(modified, expected)
+	store.Put(key, modified)
+
+	modified[0] = 0xDE
+	modified[1] = 0xAD
+	modified[2] = 0xBE
+	modified[3] = 0xEF
+
+	actual, err := store.Get(key)
+	if err != nil {
+		t.Fatalf("Couldn't get value back, %v", err)
+	}
+
+	if !bytes.Equal(expected, actual) {
+		if bytes.Equal(modified, actual) {
+			t.Errorf("Value was successfuly modified from outside the store,"+
+				" expected <%v> was <%v>",
+				expected, actual)
+		} else {
+			t.Errorf("Value was modified but took unknown value,"+
+				" expected <%v> was <%v>",
+				expected, actual)
+		}
+	}
+
+}
+
+func TestReturnedDataShouldBeCopied(t *testing.T) {
+	store := setUp(t)
+	defer tearDown(store, t)
+	key := "a coll/a key"
+	expected := []byte{
+		0x00, 0x00, 0x00, 0x00,
+	}
+	modified := make([]byte, len(expected))
+	copy(modified, expected)
+	store.Put(key, modified)
+
+	temp, err := store.Get(key)
+
+	temp[0] = 0xDE
+	temp[1] = 0xAD
+	temp[2] = 0xBE
+	temp[3] = 0xEF
+
+	actual, err := store.Get(key)
+	if err != nil {
+		t.Fatalf("Couldn't get value back, %v", err)
+	}
+
+	if !bytes.Equal(expected, actual) {
+		if bytes.Equal(temp, actual) {
+			t.Errorf("Value was successfuly modified from outside the store,"+
+				" expected <%v> was <%v>",
+				expected, actual)
+		} else {
+			t.Errorf("Value was modified from outside the store, took unknown value"+
+				" expected <%v> was <%v>",
+				expected, actual)
+		}
+	}
+}
+
 // Error cases
 
 func TestErrorWhenStorePointToNonDirectoryPath(t *testing.T) {

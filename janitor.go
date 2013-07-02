@@ -39,7 +39,7 @@ func (j *janitor) loadStore(s *Store) error {
 		return err
 	}
 
-	log.Printf("... collection names")
+	log.Printf("... scanning collections")
 	var memberPathList []string
 	var memberPath string
 	for _, file := range possibleColl {
@@ -47,36 +47,33 @@ func (j *janitor) loadStore(s *Store) error {
 			memberPath = filepath.Join(basepath, file.Name())
 			memberPathList = append(memberPathList, memberPath)
 			s.coll.members[file.Name()] = newMember(basepath, file.Name())
-			log.Printf("\t found <%s>", file.Name())
 		}
 	}
 
-	log.Printf("... member names")
+	log.Printf("... loading values into collections")
 	var aPage *page
 	var pagePath string
 	for _, member := range memberPathList {
-		log.Printf("... values for members of <%s>", filepath.Base(member))
 		possiblePage, err := ioutil.ReadDir(member)
 		if err != nil {
-			log.Printf("... skipping, can't list directory at path <%s>: %v",
+			log.Printf("\t... skipping, can't list directory at path <%s>: %v",
 				basepath, err)
 			continue
 		}
 
 		for _, file := range possiblePage {
 			if !file.Mode().IsRegular() {
-				log.Printf("... skipping irregular file <%s>", file.Name())
+				log.Printf("\t... skipping irregular file <%s>", file.Name())
 				continue
 			}
 			pagePath = filepath.Join(member, file.Name())
 			aPage, err = readFromFile(pagePath)
 			if err != nil {
-				log.Printf("... skipping, error reading possible page file: %v",
+				log.Printf("\t... skipping, error reading possible page file: %v",
 					err)
 				continue
 			}
 			s.coll.members[aPage.coll].entries[aPage.key] = aPage
-			log.Printf("\t found <%s>", aPage.key)
 		}
 	}
 	log.Printf("Done loading existing data")
