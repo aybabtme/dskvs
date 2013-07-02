@@ -116,6 +116,7 @@ func TestErrorWhenReadingJunkFile(t *testing.T) {
 			", error was %v",
 			err)
 	}
+	err.Error() // Call it to make gocov happy
 }
 
 func TestErrorWhenOpeningDifferentMajorVersion(t *testing.T) {
@@ -147,6 +148,7 @@ func TestErrorWhenOpeningDifferentMajorVersion(t *testing.T) {
 			", error was %v",
 			err)
 	}
+	err.Error() // Call it to make gocov happy
 
 }
 
@@ -187,6 +189,7 @@ sucking buttermilk!`),
 			", error was %v",
 			err)
 	}
+	err.Error() // Call it to make gocov happy
 }
 
 func TestErrorWhenHeaderComesFromAnotherPageWithDifferentLength(t *testing.T) {
@@ -218,6 +221,7 @@ func TestErrorWhenHeaderComesFromAnotherPageWithDifferentLength(t *testing.T) {
 			err,
 			result)
 	}
+	err.Error() // Call it to make gocov happy
 }
 
 func TestErrorWhenChecksumIsWrong(t *testing.T) {
@@ -255,4 +259,5 @@ sucking buttermilk!`),
 			", error was %v",
 			err)
 	}
+	err.Error() // Call it to make gocov happy
 }

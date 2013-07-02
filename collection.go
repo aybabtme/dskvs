@@ -74,7 +74,7 @@ func (c *collections) deleteKey(coll, key string) error {
 	c.RUnlock()
 
 	if !ok {
-		return errorNoColl(coll)
+		return errorNoSuchColl(coll)
 	}
 
 	m.delete(key)

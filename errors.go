@@ -39,13 +39,6 @@ func errorFailedChecksum(name string) error {
 	}
 }
 
-func errorKeyWrongSize(name string, expected uint64, actual int) error {
-	return FileError{
-		fmt.Sprintf("Key should have length %d but was %d", expected, actual),
-		name,
-	}
-}
-
 func errorPayloadWrongSize(name string, expected uint64, actual int) error {
 	return FileError{
 		fmt.Sprintf("Payload should have length %d but was %d",
@@ -116,13 +109,6 @@ func (e KeyError) Error() string {
 func errorNoColl(key string) error {
 	return KeyError{
 		"key has no collection identifier",
-		key,
-	}
-}
-
-func errorNoKey(key string) error {
-	return KeyError{
-		"key has no member identifier",
 		key,
 	}
 }

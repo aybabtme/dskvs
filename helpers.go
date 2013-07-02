@@ -34,10 +34,6 @@ func isCollectionKey(key string) bool {
 // Takes a fullkey and splits it in a (collection, member) tuple.  If member
 // is nil, the fullkey is a request for the collection as a whole
 func splitKeys(fullKey string) (string, string, error) {
-	if isCollectionKey(fullKey) {
-		return "", "", errorNoKey(fullKey)
-	}
-
 	keys := strings.SplitN(fullKey, CollKeySep, 2)
 
 	return keys[0], keys[1], nil
