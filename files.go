@@ -99,6 +99,8 @@ func readFromFile(filename string) (*page, error) {
 
 	header, err := headerFromBytes(data)
 	if err != nil {
+		log.Printf("Error reading header from file <%s> : %v",
+			filename, err)
 		return nil, errorCreatingHeader(filename, err)
 	}
 
@@ -182,7 +184,6 @@ func headerFromBytes(data []byte) (*fileHeader, error) {
 	r := bytes.NewBuffer(data)
 	err := binary.Read(r, binary.BigEndian, &header)
 	if err != nil {
-		log.Printf("Error reading header from bytes : %v", err)
 		return nil, err
 	}
 	return &header, err
