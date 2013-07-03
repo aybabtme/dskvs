@@ -3,6 +3,7 @@ package dskvs
 import (
 	"bytes"
 	"fmt"
+	"log"
 	"runtime"
 	"strconv"
 	"sync"
@@ -173,14 +174,14 @@ func TestMultipleGoroutine(t *testing.T) {
 	}
 
 	/* PUT */
-	fmt.Println("Put operations")
+	log.Println("Put operations")
 	putStats := testPut(store, expectedList, t)
-	fmt.Println(putStats.String())
+	log.Println(putStats.String())
 
 	/* GET */
-	fmt.Printf("- Get operations=%d\n", kvCount)
+	log.Printf("- Get operations=%d\n", kvCount)
 	getStats := testGet(store, expectedList, t)
-	fmt.Println(getStats.String())
+	log.Println(getStats.String())
 
 	/* GETALL */
 	actual, err := store.GetAll(coll)
@@ -193,9 +194,9 @@ func TestMultipleGoroutine(t *testing.T) {
 	}
 
 	/* DELETE */
-	fmt.Printf("- Delete operations=%d\n", len(expectedList))
+	log.Printf("- Delete operations=%d\n", len(expectedList))
 	deleteStats := testDelete(store, expectedList, t)
-	fmt.Println(deleteStats.String())
+	log.Println(deleteStats.String())
 
 	/* DELETEALL */
 	err = store.DeleteAll(coll)
@@ -206,7 +207,7 @@ func TestMultipleGoroutine(t *testing.T) {
 		checkGetIsEmpty(store, kv.Key, t)
 	}
 
-	fmt.Printf("by %d cpus, using %d concurrent goroutines\n",
+	log.Printf("by %d cpus, using %d concurrent goroutines\n",
 		runtime.NumCPU(), kvCount)
 
 }

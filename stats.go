@@ -72,6 +72,9 @@ func sum(list []time.Duration) time.Duration {
 }
 
 func avg(list []time.Duration) time.Duration {
+	if len(list) == 0 {
+		return time.Duration(0)
+	}
 	avg := sum(list).Nanoseconds() / int64(len(list))
 	return time.Duration(avg)
 }
