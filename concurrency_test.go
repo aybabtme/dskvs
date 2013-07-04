@@ -45,7 +45,7 @@ type Context struct {
 
 func TestOneOperationWithMultipleConcurrentRequest(t *testing.T) {
 
-	log.Println("Sequence of operations by group, concurrent request in each groups")
+	log.Println("Test - Sequence of operations by group, concurrent request in each groups")
 
 	store := setUp(t)
 	defer tearDown(store, t)
@@ -75,7 +75,7 @@ func TestOneOperationWithMultipleConcurrentRequest(t *testing.T) {
 
 func TestManyOperationWithMultipleConcurrentRequest(t *testing.T) {
 
-	log.Println("Many Put/Get concurrently")
+	log.Println("Test - Many Put/Get concurrently")
 
 	store := setUp(t)
 	defer tearDown(store, t)
@@ -128,7 +128,7 @@ func TestManyOperationWithMultipleConcurrentRequest(t *testing.T) {
 
 func TestConcurrentPutCanBeGetAllAndDeleteAll(t *testing.T) {
 
-	log.Println("Concurrent put consistent when GetAll/DeleteAll")
+	log.Println("Test - Concurrent put consistent when GetAll/DeleteAll")
 
 	store := setUp(t)
 	defer tearDown(store, t)
@@ -155,9 +155,6 @@ func TestConcurrentPutCanBeGetAllAndDeleteAll(t *testing.T) {
 	for _, kv := range expectedList {
 		checkGetIsEmpty(store, kv.Key, t)
 	}
-
-	log.Printf("by %d cpus, using %d concurrent goroutines\n",
-		runtime.NumCPU(), kvCount)
 
 }
 
