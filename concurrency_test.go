@@ -22,7 +22,7 @@ const baseKey = "total annihilation #"
 func init() {
 	flag.Parse()
 	if testing.Short() {
-		kvCount = 8192 // To be runable with race detector
+		kvCount = 2048 // To be runable with race detector
 	} else {
 		kvCount = 100000
 	}
