@@ -33,8 +33,8 @@ type stats struct {
 	avg    time.Duration
 	min    time.Duration
 	max    time.Duration
-	p50    time.Duration
-	p9     time.Duration
+	p75    time.Duration
+	p90    time.Duration
 	p99    time.Duration
 	p999   time.Duration
 	p9999  time.Duration
@@ -55,11 +55,11 @@ func newStats(duration []time.Duration) stats {
 		avg:    avg(list),
 		min:    list[N-1],
 		max:    list[0],
-		p50:    avg(list[:N/2]),
-		p9:     avg(list[:N/10]),
-		p99:    avg(list[:N/100]),
-		p999:   avg(list[:N/1000]),
-		p9999:  avg(list[:N/10000]),
+		p75:    list[N/4],
+		p90:    list[N/10],
+		p99:    list[N/100],
+		p999:   list[N/1000],
+		p9999:  list[N/10000],
 	}
 }
 
@@ -84,22 +84,22 @@ func (s *stats) String() string {
 		"N=%d\n"+
 			"\t total = %fs\n"+
 			"\t min   = %dns\n"+
+			"\t max   = %dns\n"+
 			"\t avg   = %dns\n"+
 			"\t med   = %dns\n"+
-			"\t max   = %dns\n"+
-			"\t p50   = %dns\n"+
-			"\t p9    = %dns\n"+
+			"\t p75   = %dns\n"+
+			"\t p90   = %dns\n"+
 			"\t p99   = %dns\n"+
 			"\t p999  = %dns\n"+
 			"\t p9999 = %dns",
 		s.n,
 		s.total.Seconds(),
 		s.min.Nanoseconds(),
+		s.max.Nanoseconds(),
 		s.avg.Nanoseconds(),
 		s.median.Nanoseconds(),
-		s.max.Nanoseconds(),
-		s.p50.Nanoseconds(),
-		s.p9.Nanoseconds(),
+		s.p75.Nanoseconds(),
+		s.p90.Nanoseconds(),
 		s.p99.Nanoseconds(),
 		s.p999.Nanoseconds(),
 		s.p9999.Nanoseconds())

@@ -24,7 +24,7 @@ func init() {
 	if testing.Short() {
 		kvCount = 2048 // To be runable with race detector
 	} else {
-		kvCount = 100000
+		kvCount = 10000
 	}
 	log.Printf("Concurrent N=%d\n", kvCount)
 }
