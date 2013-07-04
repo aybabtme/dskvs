@@ -63,9 +63,10 @@ func writeToFile(dirty *page) {
 		deleteFile(filename)
 		return
 	}
-	dirty.RUnlock()
 
 	data, err := fromPageToBytes(dirty)
+
+	dirty.RUnlock()
 
 	if err != nil {
 		log.Printf("Couldn't get data from page: %v", err)

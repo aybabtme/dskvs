@@ -11,6 +11,12 @@ import (
 	"time"
 )
 
+const (
+	CONCURRENCY_LEVEL = 1000
+)
+
+type semaphore chan int
+
 type keyValue struct {
 	Key   string
 	Value []byte
@@ -26,6 +32,8 @@ func testPut(store *Store, expectedList []keyValue, t *testing.T) stats {
 
 		// Put all the values concurrently, ensure there's no error
 		putGroup.Add(1)
+
+		// TODO reduce the amount of goroutines that are created to < 8192
 		go func(pair keyValue, durations chan time.Duration, cErr chan error) {
 			defer putGroup.Done()
 
@@ -67,6 +75,7 @@ func testGet(store *Store, expectedList []keyValue, t *testing.T) stats {
 
 	for _, kv := range expectedList {
 		getGroup.Add(1)
+		// TODO reduce the amount of goroutines that are created to < 8192
 		go func(kv keyValue, durations chan time.Duration, cErr chan error) {
 			defer getGroup.Done()
 
@@ -114,6 +123,8 @@ func testDelete(store *Store, expectedList []keyValue, t *testing.T) stats {
 
 	for _, kv := range expectedList {
 		deleteGroup.Add(1)
+
+		// TODO reduce the amount of goroutines that are created to < 8192
 		go func(kv keyValue, durations chan time.Duration, cErr chan error) {
 			defer deleteGroup.Done()
 
