@@ -64,11 +64,11 @@ func newStats(duration []time.Duration) stats {
 }
 
 func sum(list []time.Duration) time.Duration {
-	total := int64(0)
+	var total time.Duration
 	for _, val := range list {
-		total += val.Nanoseconds()
+		total += val
 	}
-	return time.Duration(total)
+	return total
 }
 
 func avg(list []time.Duration) time.Duration {
