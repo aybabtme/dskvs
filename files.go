@@ -154,8 +154,8 @@ func readFromFile(filename string) (*page, error) {
 func deleteFile(filename string) {
 	err := os.Remove(filename)
 	if os.IsNotExist(err) {
-		log.Printf("Request to delete was already processed for file <%s>",
-			filepath.Base(filename))
+		// Duplicate request, or file doesn't exist.
+		// Common case and not worth logging.
 	} else if err != nil {
 		log.Printf("Couldn't delete file <%s> : %v", filename, err)
 	}

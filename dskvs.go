@@ -185,7 +185,8 @@ func (s *Store) Put(fullKey string, value []byte) error {
 		return err
 	}
 
-	return s.coll.put(coll, key, value)
+	s.coll.put(coll, key, value)
+	return nil
 }
 
 // Delete removes member with `fullKey` from the storage.

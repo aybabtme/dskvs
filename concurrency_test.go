@@ -2,14 +2,32 @@ package dskvs
 
 import (
 	"bytes"
+	"errors"
+	"flag"
 	"fmt"
 	"log"
+	"math/rand"
 	"runtime"
 	"strconv"
 	"sync"
 	"testing"
 	"time"
 )
+
+var kvCount int64
+
+const coll = "games"
+const baseKey = "total annihilation #"
+
+func init() {
+	flag.Parse()
+	if testing.Short() {
+		kvCount = 8192 // To be runable with race detector
+	} else {
+		kvCount = 100000
+	}
+	log.Printf("Concurrent N=%d\n", kvCount)
+}
 
 type keyValue struct {
 	Key   string
@@ -25,43 +43,102 @@ type Context struct {
 	errors chan error
 }
 
-func TestMultipleGoroutine(t *testing.T) {
-	var kvCount int64
-	if testing.Short() {
-		kvCount = 1000
-	} else {
-		kvCount = 5000
-	}
+func TestOneOperationWithMultipleConcurrentRequest(t *testing.T) {
 
-	fmt.Printf("Concurrent test, keyValQty=%d\n", kvCount)
-
-	coll := "games"
-	baseKey := "total annihilation #"
+	log.Println("Sequence of operations by group, concurrent request in each groups")
 
 	store := setUp(t)
 	defer tearDown(store, t)
 	defer runtime.GOMAXPROCS(runtime.GOMAXPROCS(runtime.NumCPU()))
 
-	// Generate
-	expectedList := make([]keyValue, 0)
-	for i := int64(0); i < kvCount; i++ {
-		key := coll + CollKeySep + baseKey + strconv.FormatInt(i, 10)
-		data := generateData(Data{"It's fun!"}, t)
-		kv := keyValue{key, data}
-		expectedList = append(expectedList, kv)
-	}
+	expectedList := generateKeyValueList(kvCount, t)
 
 	// Put
 	log.Println("Put operations")
-	putStats := runTest(doPutRequest, store, expectedList, t)
+	putStats := runTest(doPutRequest, 1, store, expectedList, t)
 	log.Println(putStats.String())
 
 	// Get
-	log.Printf("- Get operations=%d\n", kvCount)
-	getStats := runTest(doGetRequest, store, expectedList, t)
+	log.Printf("Get operations")
+	getStats := runTest(doGetRequest, 1, store, expectedList, t)
 	log.Println(getStats.String())
 
-	// GetAll
+	// Delete
+	log.Printf("Delete operations")
+	deleteStats := runTest(doDeleteRequest, 1, store, expectedList, t)
+	log.Println(deleteStats.String())
+
+	log.Printf("by %d cpus, using %d concurrent goroutines\n",
+		runtime.NumCPU(), kvCount)
+
+}
+
+func TestManyOperationWithMultipleConcurrentRequest(t *testing.T) {
+
+	log.Println("Many Put/Get concurrently")
+
+	store := setUp(t)
+	defer tearDown(store, t)
+	defer runtime.GOMAXPROCS(runtime.GOMAXPROCS(runtime.NumCPU()))
+
+	expectedList := generateKeyValueList(kvCount/3, t)
+
+	// Start writing/reading concurrently, in random order
+	concurrentFunc := func(ctx Context) {
+		switch rand.Intn(5) {
+		case 0:
+			doFailGetRequest(ctx)
+			doPutRequest(ctx)
+			doDeleteRequest(ctx)
+		case 1:
+			doPutRequest(ctx)
+			doGetRequest(ctx)
+			doDeleteRequest(ctx)
+		case 2:
+			doPutRequest(ctx)
+			doGetRequest(ctx)
+			doDeleteRequest(ctx)
+		case 3:
+			doPutRequest(ctx)
+			doDeleteRequest(ctx)
+			doFailGetRequest(ctx)
+		case 4:
+			doFailGetRequest(ctx)
+			doPutRequest(ctx)
+			doGetRequest(ctx)
+		}
+	}
+	concurrentStats := runTest(concurrentFunc, 3, store, expectedList, t)
+	log.Printf("Concurrent operations")
+	log.Println(concurrentStats.String())
+
+	// Cleanup
+	err := store.DeleteAll(coll)
+	if err != nil {
+		t.Fatalf("Error deleting all", err)
+	}
+	for _, kv := range expectedList {
+		checkGetIsEmpty(store, kv.Key, t)
+	}
+
+	log.Printf("by %d cpus, using %d concurrent goroutines\n",
+		runtime.NumCPU(), kvCount)
+
+}
+
+func TestConcurrentPutCanBeGetAllAndDeleteAll(t *testing.T) {
+
+	log.Println("Concurrent put consistent when GetAll/DeleteAll")
+
+	store := setUp(t)
+	defer tearDown(store, t)
+	defer runtime.GOMAXPROCS(runtime.GOMAXPROCS(runtime.NumCPU()))
+
+	expectedList := generateKeyValueList(kvCount, t)
+
+	// Don't care about the stats
+	_ = runTest(doPutRequest, 1, store, expectedList, t)
+
 	actual, err := store.GetAll(coll)
 	if err != nil {
 		t.Errorf("Error on GetAll(%s), %v", coll, err)
@@ -71,12 +148,6 @@ func TestMultipleGoroutine(t *testing.T) {
 			len(actual))
 	}
 
-	// Delete
-	log.Printf("- Delete operations=%d\n", len(expectedList))
-	deleteStats := runTest(doDeleteRequest, store, expectedList, t)
-	log.Println(deleteStats.String())
-
-	// DeleteAll
 	err = store.DeleteAll(coll)
 	if err != nil {
 		t.Fatalf("Error deleting all", err)
@@ -90,14 +161,14 @@ func TestMultipleGoroutine(t *testing.T) {
 
 }
 
-func runTest(doer func(Context), store *Store, expectedList []keyValue, t *testing.T) stats {
+func runTest(testedFunc func(Context), nGo int, store *Store, expectedList []keyValue, t *testing.T) stats {
 
 	cErr := make(chan error)
 	var wg sync.WaitGroup
-	durations := make(chan time.Duration, len(expectedList))
+	durations := make(chan time.Duration, len(expectedList)*nGo)
 
 	for _, kv := range expectedList {
-		wg.Add(1)
+		wg.Add(nGo)
 		ctx := Context{
 			t:      t,
 			s:      store,
@@ -106,7 +177,7 @@ func runTest(doer func(Context), store *Store, expectedList []keyValue, t *testi
 			dur:    durations,
 			errors: cErr,
 		}
-		go doer(ctx)
+		go testedFunc(ctx)
 	}
 
 	wg.Wait()
@@ -126,7 +197,6 @@ func runTest(doer func(Context), store *Store, expectedList []keyValue, t *testi
 }
 
 func doPutRequest(ctx Context) {
-	defer ctx.wg.Done()
 
 	t0 := time.Now()
 	err := ctx.s.Put(ctx.kv.Key, ctx.kv.Value)
@@ -138,10 +208,10 @@ func doPutRequest(ctx Context) {
 		ctx.t.Fatal("Received an error", err)
 		ctx.errors <- err
 	}
+	ctx.wg.Done()
 }
 
 func doGetRequest(ctx Context) {
-	defer ctx.wg.Done()
 
 	expected := ctx.kv.Value
 
@@ -158,10 +228,25 @@ func doGetRequest(ctx Context) {
 			expected,
 			actual)
 	}
+	ctx.wg.Done()
+}
+
+// Get can fail when there's no such key, not true for Put and Delete
+func doFailGetRequest(ctx Context) {
+
+	t0 := time.Now()
+	_, err := ctx.s.Get(ctx.kv.Key)
+	dT := time.Since(t0)
+
+	ctx.dur <- dT
+
+	if _, ok := err.(KeyError); !ok {
+		ctx.errors <- errors.New(fmt.Sprintf("Should have failed on Get(%s)", ctx.kv.Key))
+	}
+	ctx.wg.Done()
 }
 
 func doDeleteRequest(ctx Context) {
-	defer ctx.wg.Done()
 
 	t0 := time.Now()
 	err := ctx.s.Delete(ctx.kv.Key)
@@ -173,4 +258,21 @@ func doDeleteRequest(ctx Context) {
 		ctx.t.Fatal("Received an error", err)
 		ctx.errors <- err
 	}
+	ctx.wg.Done()
+}
+
+func generateKeyValueList(kvCount int64, t *testing.T) []keyValue {
+
+	coll := "games"
+	baseKey := "total annihilation #"
+
+	kvList := make([]keyValue, kvCount)
+	for i := int64(0); i < kvCount; i++ {
+		key := coll + CollKeySep + baseKey + strconv.FormatInt(i, 10)
+		data := generateData(Data{"It's fun!"}, t)
+		kv := keyValue{key, data}
+		kvList[i] = kv
+	}
+
+	return kvList
 }

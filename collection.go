@@ -40,7 +40,7 @@ func (c *collections) getCollection(coll string) ([][]byte, error) {
 	return m.getMembers(), nil
 }
 
-func (c *collections) put(coll, key string, value []byte) error {
+func (c *collections) put(coll, key string, value []byte) {
 	c.RLock()
 	m, ok := c.members[coll]
 	c.RUnlock()
@@ -63,7 +63,6 @@ func (c *collections) put(coll, key string, value []byte) error {
 
 	m.put(key, value)
 
-	return nil
 }
 
 func (c *collections) deleteKey(coll, key string) error {
