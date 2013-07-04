@@ -63,6 +63,9 @@ concurrently, read and write to stores concurrently.  Safe concurrent access
 are part of the implementation because `dskvs` is expected to be used for
 concurrent apps.
 
+God help you if you load two `Store`s that share some part of the filesystem.
+A check for that is not implemented.
+
 I might add an unsafe version of `Store` in the future if there's evidence of
 notable performance gains, if there's a use case for it and if it doesn't
 uglify the code.
