@@ -19,8 +19,8 @@ var kvCount int64
 const (
 	coll       = "games"
 	baseKey    = "total annihilation #"
-	goroutines = 100
-	byteSize   = 100
+	goroutines = 10
+	byteSize   = 1000
 )
 
 func init() {
@@ -30,7 +30,7 @@ func init() {
 	} else {
 		kvCount = 100000
 	}
-	log.Printf("Concurrent Goroutines=%d, kvCount=%d\n", goroutines, kvCount)
+	log.Printf("Concurrency Benchmark - Goroutines=%d, unique key-value=%d\n", goroutines, kvCount)
 }
 
 type keyValue struct {
@@ -50,8 +50,8 @@ type Context struct {
 
 func TestOneOperationWithMultipleConcurrentRequest(t *testing.T) {
 
-	log.Printf("Test - Sequence of operations by group, "+
-		"%d concurrent request in each groups", goroutines)
+	log.Printf("Sequence of %d bytes operations by group, "+
+		"%d concurrent request in each groups", byteSize, goroutines)
 
 	store := setUp(t)
 	defer tearDown(store, t)
@@ -59,19 +59,19 @@ func TestOneOperationWithMultipleConcurrentRequest(t *testing.T) {
 
 	expectedList := generateKeyValueList(kvCount, t)
 
-	log.Println("Put operations - first time")
+	log.Println("Put - first time")
 	putStats := runTest(doPutRequest, 1, goroutines, store, expectedList, t)
 	log.Println(putStats.String())
 
-	log.Println("Put operations - rewrite")
+	log.Println("Put - rewrite")
 	rePutStats := runTest(doPutRequest, 1, goroutines, store, expectedList, t)
 	log.Println(rePutStats.String())
 
-	log.Printf("Get operations")
+	log.Printf("Get")
 	getStats := runTest(doGetRequest, 1, goroutines, store, expectedList, t)
 	log.Println(getStats.String())
 
-	log.Printf("Delete operations")
+	log.Printf("Delete")
 	deleteStats := runTest(doDeleteRequest, 1, goroutines, store, expectedList, t)
 	log.Println(deleteStats.String())
 
@@ -81,8 +81,6 @@ func TestOneOperationWithMultipleConcurrentRequest(t *testing.T) {
 }
 
 func TestManyOperationWithMultipleConcurrentRequest(t *testing.T) {
-
-	log.Println("Test - Many Put/Get concurrently")
 
 	store := setUp(t)
 	defer tearDown(store, t)
@@ -129,8 +127,6 @@ func TestManyOperationWithMultipleConcurrentRequest(t *testing.T) {
 }
 
 func TestConcurrentPutCanBeGetAllAndDeleteAll(t *testing.T) {
-
-	log.Println("Test - Concurrent put consistent when GetAll/DeleteAll")
 
 	store := setUp(t)
 	defer tearDown(store, t)
