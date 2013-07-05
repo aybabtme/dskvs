@@ -19,8 +19,8 @@ var kvCount int64
 const (
 	coll       = "games"
 	baseKey    = "total annihilation #"
-	goroutines = 1
-	byteSize   = 100
+	goroutines = 10
+	byteSize   = 1000
 )
 
 func init() {
@@ -28,7 +28,7 @@ func init() {
 	if testing.Short() {
 		kvCount = 2048 // To be runable with race detector
 	} else {
-		kvCount = 10000
+		kvCount = 100000
 	}
 	log.Printf("Concurrency Benchmark - Goroutines=%d, unique key-value=%d\n", goroutines, kvCount)
 }
