@@ -49,23 +49,18 @@ func (c *collections) put(coll, key string, value []byte) {
 
 		// Another goroutine could have created the entry since our read
 		// of ok, so need to Lock and verify again that it's still not
-		// an entry.  Not doing so would drop the member that was `put`
+		// an entry. Not doing so would drop the member that was `put`
 		// by the other goroutine
 		c.Lock()
-		m, stillOk := c.members[coll]
-		if !stillOk {
+		m, ok = c.members[coll]
+		if !ok {
 			m = newMember(c.basepath, coll)
 			c.members[coll] = m
 			jan.ToCreate <- m
-			m.put(key, value)
-		} else {
-			m.put(key, value)
 		}
 		c.Unlock()
-	} else {
-		m.put(key, value)
 	}
-
+	m.put(key, value)
 }
 
 func (c *collections) deleteKey(coll, key string) error {
