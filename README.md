@@ -3,7 +3,7 @@
 [![Build Status](https://drone.io/github.com/aybabtme/dskvs/status.png)]
 (https://drone.io/github.com/aybabtme/dskvs/latest)
 [![Coverage
-Status](https://coveralls.io/repos/aybabtme/dskvs/badge.png?branch=proto)](https://coveralls.io/r/aybabtme/dskvs?branch=proto)
+Status](https://coveralls.io/repos/aybabtme/dskvs/badge.png?branch=master)](https://coveralls.io/r/aybabtme/dskvs?branch=master)
 
 An in-memory, eventually persisted data store of the simplest design, `dskvs`
 stores it's data in two layers of maps, which are routinely persisted to disk
