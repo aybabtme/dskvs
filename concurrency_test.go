@@ -53,17 +53,14 @@ func TestOneOperationWithMultipleConcurrentRequest(t *testing.T) {
 
 	expectedList := generateKeyValueList(kvCount, t)
 
-	// Put
 	log.Println("Put operations")
 	putStats := runTest(doPutRequest, 1, store, expectedList, t)
 	log.Println(putStats.String())
 
-	// Get
 	log.Printf("Get operations")
 	getStats := runTest(doGetRequest, 1, store, expectedList, t)
 	log.Println(getStats.String())
 
-	// Delete
 	log.Printf("Delete operations")
 	deleteStats := runTest(doDeleteRequest, 1, store, expectedList, t)
 	log.Println(deleteStats.String())
