@@ -41,13 +41,18 @@ type stats struct {
 }
 
 func newStats(duration []time.Duration) stats {
+
+	N := len(duration)
+	if N == 0 {
+		return stats{}
+	}
+
 	sortable := newDurationList(duration)
 
 	sort.Sort(sort.Reverse(sortable))
 
 	list := sortable.durations
 
-	N := len(list)
 	return stats{
 		n:      N,
 		total:  sum(list),

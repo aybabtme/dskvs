@@ -52,16 +52,19 @@ func (c *collections) put(coll, key string, value []byte) {
 		// an entry.  Not doing so would drop the member that was `put`
 		// by the other goroutine
 		c.Lock()
-		_, stillOk := c.members[coll]
+		m, stillOk := c.members[coll]
 		if !stillOk {
 			m = newMember(c.basepath, coll)
 			c.members[coll] = m
 			jan.ToCreate <- m
+			m.put(key, value)
+		} else {
+			m.put(key, value)
 		}
 		c.Unlock()
+	} else {
+		m.put(key, value)
 	}
-
-	m.put(key, value)
 
 }
 
