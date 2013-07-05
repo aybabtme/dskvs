@@ -138,10 +138,7 @@ func (s *Store) Get(fullKey string) ([]byte, error) {
 		return nil, errorGetIsColl(fullKey)
 	}
 
-	coll, key, err := splitKeys(fullKey)
-	if err != nil {
-		return nil, err
-	}
+	coll, key := splitKeys(fullKey)
 
 	return s.coll.get(coll, key)
 }
@@ -180,10 +177,7 @@ func (s *Store) Put(fullKey string, value []byte) error {
 		return errorPutIsColl(fullKey, string(value))
 	}
 
-	coll, key, err := splitKeys(fullKey)
-	if err != nil {
-		return err
-	}
+	coll, key := splitKeys(fullKey)
 
 	s.coll.put(coll, key, value)
 	return nil
@@ -203,10 +197,7 @@ func (s *Store) Delete(fullKey string) error {
 		return errorDeleteIsColl(fullKey)
 	}
 
-	coll, key, err := splitKeys(fullKey)
-	if err != nil {
-		return err
-	}
+	coll, key := splitKeys(fullKey)
 
 	return s.coll.deleteKey(coll, key)
 }

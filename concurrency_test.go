@@ -16,17 +16,21 @@ import (
 
 var kvCount int64
 
-const coll = "games"
-const baseKey = "total annihilation #"
+const (
+	coll       = "games"
+	baseKey    = "total annihilation #"
+	goroutines = 100
+	byteSize   = 100
+)
 
 func init() {
 	flag.Parse()
 	if testing.Short() {
 		kvCount = 2048 // To be runable with race detector
 	} else {
-		kvCount = 10000
+		kvCount = 100000
 	}
-	log.Printf("Concurrent N=%d\n", kvCount)
+	log.Printf("Concurrent Goroutines=%d, kvCount=%d\n", goroutines, kvCount)
 }
 
 type keyValue struct {
@@ -39,13 +43,15 @@ type Context struct {
 	s      *Store
 	kv     keyValue
 	wg     *sync.WaitGroup
+	sem    chan int
 	dur    chan time.Duration
 	errors chan error
 }
 
 func TestOneOperationWithMultipleConcurrentRequest(t *testing.T) {
 
-	log.Println("Test - Sequence of operations by group, concurrent request in each groups")
+	log.Printf("Test - Sequence of operations by group, "+
+		"%d concurrent request in each groups", goroutines)
 
 	store := setUp(t)
 	defer tearDown(store, t)
@@ -53,20 +59,24 @@ func TestOneOperationWithMultipleConcurrentRequest(t *testing.T) {
 
 	expectedList := generateKeyValueList(kvCount, t)
 
-	log.Println("Put operations")
-	putStats := runTest(doPutRequest, 1, store, expectedList, t)
+	log.Println("Put operations - first time")
+	putStats := runTest(doPutRequest, 1, goroutines, store, expectedList, t)
 	log.Println(putStats.String())
 
+	log.Println("Put operations - rewrite")
+	rePutStats := runTest(doPutRequest, 1, goroutines, store, expectedList, t)
+	log.Println(rePutStats.String())
+
 	log.Printf("Get operations")
-	getStats := runTest(doGetRequest, 1, store, expectedList, t)
+	getStats := runTest(doGetRequest, 1, goroutines, store, expectedList, t)
 	log.Println(getStats.String())
 
 	log.Printf("Delete operations")
-	deleteStats := runTest(doDeleteRequest, 1, store, expectedList, t)
+	deleteStats := runTest(doDeleteRequest, 1, goroutines, store, expectedList, t)
 	log.Println(deleteStats.String())
 
 	log.Printf("by %d cpus, using %d concurrent goroutines\n",
-		runtime.NumCPU(), kvCount)
+		runtime.NumCPU(), goroutines)
 
 }
 
@@ -105,9 +115,7 @@ func TestManyOperationWithMultipleConcurrentRequest(t *testing.T) {
 			doGetRequest(ctx)
 		}
 	}
-	concurrentStats := runTest(concurrentFunc, 3, store, expectedList, t)
-	log.Printf("Concurrent operations")
-	log.Println(concurrentStats.String())
+	_ = runTest(concurrentFunc, 3, goroutines, store, expectedList, t)
 
 	// Cleanup
 	err := store.DeleteAll(coll)
@@ -117,9 +125,6 @@ func TestManyOperationWithMultipleConcurrentRequest(t *testing.T) {
 	for _, kv := range expectedList {
 		checkGetIsEmpty(store, kv.Key, t)
 	}
-
-	log.Printf("by %d cpus, using %d concurrent goroutines\n",
-		runtime.NumCPU(), kvCount)
 
 }
 
@@ -134,7 +139,7 @@ func TestConcurrentPutCanBeGetAllAndDeleteAll(t *testing.T) {
 	expectedList := generateKeyValueList(kvCount, t)
 
 	// Don't care about the stats
-	_ = runTest(doPutRequest, 1, store, expectedList, t)
+	_ = runTest(doPutRequest, 1, 100, store, expectedList, t)
 
 	actual, err := store.GetAll(coll)
 	if err != nil {
@@ -155,12 +160,20 @@ func TestConcurrentPutCanBeGetAllAndDeleteAll(t *testing.T) {
 
 }
 
-func runTest(testedFunc func(Context), nGo int, store *Store, expectedList []keyValue, t *testing.T) stats {
+func runTest(
+	testedFunc func(Context),
+	nGo int,
+	goroutines int,
+	store *Store,
+	expectedList []keyValue,
+	t *testing.T,
+) stats {
 
 	cErr := make(chan error)
 	var wg sync.WaitGroup
 	durations := make(chan time.Duration, len(expectedList)*nGo)
 
+	sem := make(chan int, goroutines)
 	for _, kv := range expectedList {
 		wg.Add(nGo)
 		ctx := Context{
@@ -168,10 +181,12 @@ func runTest(testedFunc func(Context), nGo int, store *Store, expectedList []key
 			s:      store,
 			kv:     kv,
 			wg:     &wg,
+			sem:    sem,
 			dur:    durations,
 			errors: cErr,
 		}
 		go testedFunc(ctx)
+
 	}
 
 	wg.Wait()
@@ -191,7 +206,7 @@ func runTest(testedFunc func(Context), nGo int, store *Store, expectedList []key
 }
 
 func doPutRequest(ctx Context) {
-
+	ctx.sem <- 1
 	t0 := time.Now()
 	err := ctx.s.Put(ctx.kv.Key, ctx.kv.Value)
 	dT := time.Since(t0)
@@ -203,10 +218,11 @@ func doPutRequest(ctx Context) {
 		ctx.errors <- err
 	}
 	ctx.wg.Done()
+	<-ctx.sem
 }
 
 func doGetRequest(ctx Context) {
-
+	ctx.sem <- 1
 	expected := ctx.kv.Value
 
 	t0 := time.Now()
@@ -223,11 +239,12 @@ func doGetRequest(ctx Context) {
 			actual)
 	}
 	ctx.wg.Done()
+	<-ctx.sem
 }
 
 // Get can fail when there's no such key, not true for Put and Delete
 func doFailGetRequest(ctx Context) {
-
+	ctx.sem <- 1
 	t0 := time.Now()
 	_, err := ctx.s.Get(ctx.kv.Key)
 	dT := time.Since(t0)
@@ -238,10 +255,11 @@ func doFailGetRequest(ctx Context) {
 		ctx.errors <- errors.New(fmt.Sprintf("Should have failed on Get(%s)", ctx.kv.Key))
 	}
 	ctx.wg.Done()
+	<-ctx.sem
 }
 
 func doDeleteRequest(ctx Context) {
-
+	ctx.sem <- 1
 	t0 := time.Now()
 	err := ctx.s.Delete(ctx.kv.Key)
 	dT := time.Since(t0)
@@ -253,6 +271,7 @@ func doDeleteRequest(ctx Context) {
 		ctx.errors <- err
 	}
 	ctx.wg.Done()
+	<-ctx.sem
 }
 
 func generateKeyValueList(kvCount int64, t *testing.T) []keyValue {
@@ -263,7 +282,8 @@ func generateKeyValueList(kvCount int64, t *testing.T) []keyValue {
 	kvList := make([]keyValue, kvCount)
 	for i := int64(0); i < kvCount; i++ {
 		key := coll + CollKeySep + baseKey + strconv.FormatInt(i, 10)
-		data := generateData(Data{"It's fun!"}, t)
+		data := make([]byte, byteSize)
+		//data := generateData(Data{"It's fun!"}, t)
 		kv := keyValue{key, data}
 		kvList[i] = kv
 	}

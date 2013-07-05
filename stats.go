@@ -28,7 +28,6 @@ func (l durationList) Less(i, j int) bool {
 
 type stats struct {
 	n      int
-	total  time.Duration
 	median time.Duration
 	avg    time.Duration
 	min    time.Duration
@@ -55,7 +54,6 @@ func newStats(duration []time.Duration) stats {
 
 	return stats{
 		n:      N,
-		total:  sum(list),
 		median: list[N/2],
 		avg:    avg(list),
 		min:    list[N-1],
@@ -85,27 +83,31 @@ func avg(list []time.Duration) time.Duration {
 }
 
 func (s *stats) String() string {
+
+	total := float64(s.n) * s.avg.Seconds()
+	persec := float64(s.n) / total
+
 	return fmt.Sprintf(
-		"N=%d\n"+
-			"\t total = %fs\n"+
-			"\t min   = %dns\n"+
-			"\t max   = %dns\n"+
-			"\t avg   = %dns\n"+
-			"\t med   = %dns\n"+
-			"\t p75   = %dns\n"+
-			"\t p90   = %dns\n"+
-			"\t p99   = %dns\n"+
-			"\t p999  = %dns\n"+
-			"\t p9999 = %dns",
+		"N=%d,\n"+
+			"\t %1.2f op/sec\n"+
+			"\t min   = %s\n"+
+			"\t max   = %s\n"+
+			"\t avg   = %s\n"+
+			"\t med   = %s\n"+
+			"\t p75   = %s\n"+
+			"\t p90   = %s\n"+
+			"\t p99   = %s\n"+
+			"\t p999  = %s\n"+
+			"\t p9999 = %s",
 		s.n,
-		s.total.Seconds(),
-		s.min.Nanoseconds(),
-		s.max.Nanoseconds(),
-		s.avg.Nanoseconds(),
-		s.median.Nanoseconds(),
-		s.p75.Nanoseconds(),
-		s.p90.Nanoseconds(),
-		s.p99.Nanoseconds(),
-		s.p999.Nanoseconds(),
-		s.p9999.Nanoseconds())
+		persec,
+		s.min,
+		s.max,
+		s.avg,
+		s.median,
+		s.p75,
+		s.p90,
+		s.p99,
+		s.p999,
+		s.p9999)
 }

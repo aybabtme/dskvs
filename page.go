@@ -27,23 +27,23 @@ func newPage(basepath, coll, key string) *page {
 
 func (p *page) get() []byte {
 	p.RLock()
-	defer p.RUnlock()
 	if p.isDeleted {
 		return nil
 	}
 	data := make([]byte, len(p.value))
 	copy(data, p.value)
+	p.RUnlock()
 	return data
+	//return p.value
 }
 
 func (p *page) set(value []byte) {
-	data := make([]byte, len(value))
-	copy(data, value)
 	p.Lock()
-	defer p.Unlock()
+	p.value = make([]byte, len(value))
+	copy(p.value, value)
 	wasDirty := p.isDirty
-	p.value = data
 	p.isDirty = true
+	p.Unlock()
 	if !wasDirty {
 		jan.DirtyPages <- p
 	}
@@ -51,11 +51,11 @@ func (p *page) set(value []byte) {
 
 func (p *page) delete() {
 	p.Lock()
-	defer p.Unlock()
 	wasDirty := p.isDirty
 	p.value = nil
 	p.isDirty = true
 	p.isDeleted = true
+	p.Unlock()
 	if !wasDirty {
 		jan.DirtyPages <- p
 	}
