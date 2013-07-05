@@ -75,10 +75,8 @@ func (j *janitor) loadStore(s *Store) error {
 }
 
 func (j *janitor) unloadStore(s *Store) error {
-
 	j.die()
 	<-j.blockUntilFinished
-
 	return nil
 }
 

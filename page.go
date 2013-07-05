@@ -30,16 +30,19 @@ func (p *page) get() []byte {
 	if p.isDeleted {
 		return nil
 	}
-	data := make([]byte, len(p.value))
-	copy(data, p.value)
 	p.RUnlock()
-	return data
-	//return p.value
+	return p.value
 }
 
 func (p *page) set(value []byte) {
 	p.Lock()
-	p.value = make([]byte, len(value))
+	prev := len(p.value)
+	next := len(value)
+	if prev > next {
+		p.value = p.value[:next]
+	} else if prev < next {
+		p.value = make([]byte, next)
+	}
 	copy(p.value, value)
 	wasDirty := p.isDirty
 	p.isDirty = true

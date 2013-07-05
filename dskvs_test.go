@@ -323,6 +323,7 @@ func TestGivenDataShouldBeCopied(t *testing.T) {
 
 }
 
+/* To be determined, do we wish to provide speed or safety on returned values?
 func TestReturnedDataShouldBeCopied(t *testing.T) {
 	store := setUp(t)
 	defer tearDown(store, t)
@@ -358,6 +359,7 @@ func TestReturnedDataShouldBeCopied(t *testing.T) {
 		}
 	}
 }
+*/
 
 // Error cases
 
