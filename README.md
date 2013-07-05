@@ -14,7 +14,10 @@ provide storage solution for _Small Data_™ apps.  If your data-set holds withi
 the RAM of a single host, `dskvs` is the right thing for you.
 
 ## Status
+Holds within 952 lines of Go code, tested by an extra 1k lines.
+
 This project is not yet ready for anybody's usage, it is still under development and has not been extensively tested.
+
 
 ## At a glance
 
