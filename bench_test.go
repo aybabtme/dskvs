@@ -2,10 +2,41 @@ package dskvs
 
 import (
 	"fmt"
+	"math/rand"
 	"os"
-	"strconv"
 	"testing"
 )
+
+// This benchmark is pretty much verbatim taken from
+// "github.com/peterbourgon/diskv", because it's a similar
+// key-value store and it's easy to compare to it.
+
+func shuffle(keys []string) {
+	ints := rand.Perm(len(keys))
+	for i, _ := range keys {
+		keys[i], keys[ints[i]] = keys[ints[i]], keys[i]
+	}
+}
+
+func genValue(size int) []byte {
+	v := make([]byte, size)
+	for i := 0; i < size; i++ {
+		v[i] = uint8((rand.Int() % 26) + 97) // a-z
+	}
+	return v
+}
+
+const (
+	KEY_COUNT = 10000
+)
+
+func genKeys() []string {
+	keys := make([]string, KEY_COUNT)
+	for i := 0; i < KEY_COUNT; i++ {
+		keys[i] = fmt.Sprintf("speed_test/%d", i)
+	}
+	return keys
+}
 
 func setUpBench(b *testing.B) *Store {
 	store, err := NewStore("./db")
@@ -31,205 +62,78 @@ func tearDownBench(store *Store, b *testing.B) {
 	}
 }
 
-func benchPut(valSize int, b *testing.B) {
-	if testing.Short() && valSize > 100 {
-		b.Skip("Skipping put benchmarks")
-		return
+func benchGet(size int, b *testing.B) {
+	b.StopTimer()
+	d := setUpBench(b)
+	defer tearDownBench(d, b)
+
+	keys := genKeys()
+	value := genValue(size)
+	for _, key := range keys {
+
+		if err := d.Put(key, value); err != nil {
+			b.Fatalf("Failed putting values, %v", err)
+		}
 	}
 
-	b.ReportAllocs()
-	store := setUpBench(b)
-	defer tearDownBench(store, b)
-	baseKey := "hello/hello"
-	val := make([]byte, valSize)
-	for i := int(0); i < valSize; i++ {
-		val[i] = uint8(i % 256)
-	}
-	keyList := make([]string, b.N)
+	shuffle(keys)
+	b.SetBytes(int64(size))
+
+	b.StartTimer()
 	for i := 0; i < b.N; i++ {
-		key := baseKey + strconv.Itoa(i)
-		keyList[i] = key
-	}
-	b.ResetTimer()
-	for _, key := range keyList {
-		err := store.Put(key, val)
-		if err != nil {
-			b.Errorf("Get has error %v", err)
-		}
+		_, _ = d.Get(keys[i%len(keys)])
 	}
 	b.StopTimer()
 }
 
-func BenchmarkPut100B(b *testing.B) {
-	benchPut(100, b)
+func benchPut(size int, b *testing.B) {
+	b.StopTimer()
+
+	d := setUpBench(b)
+	defer tearDownBench(d, b)
+
+	keys := genKeys()
+	value := genValue(size)
+	shuffle(keys)
+	b.SetBytes(int64(size))
+
+	b.StartTimer()
+	for i := 0; i < b.N; i++ {
+		_ = d.Put(keys[i%len(keys)], value)
+	}
+	b.StopTimer()
 }
 
-func BenchmarkPut400B(b *testing.B) {
-	benchPut(400, b)
+// Put
+func BenchmarkPut32B(b *testing.B) {
+	benchPut(32, b)
 }
 
 func BenchmarkPut1KB(b *testing.B) {
-	benchPut(1000, b)
+	benchPut(1024, b)
 }
 
 func BenchmarkPut4KB(b *testing.B) {
-	benchPut(4000, b)
+	benchPut(4096, b)
 }
 
 func BenchmarkPut10KB(b *testing.B) {
-	benchPut(10000, b)
+	benchPut(10240, b)
 }
 
-func BenchmarkPut40KB(b *testing.B) {
-	benchPut(40000, b)
-}
-
-func BenchmarkPut100KB(b *testing.B) {
-	benchPut(100000, b)
-}
-
-func BenchmarkPut400KB(b *testing.B) {
-	benchPut(400000, b)
-}
-
-func BenchmarkPut1MB(b *testing.B) {
-	benchPut(1000000, b)
-}
-
-func benchGet(valSize int, b *testing.B) {
-	if testing.Short() && valSize > 100 {
-		b.Skip("Skipping get benchmarks")
-		return
-	}
-
-	fmt.Printf("N=%d\n", b.N)
-
-	b.ReportAllocs()
-	store := setUpBench(b)
-	defer tearDownBench(store, b)
-	baseKey := "hello/hello"
-	val := make([]byte, valSize)
-	for i := int(0); i < valSize; i++ {
-		val[i] = uint8(i % 256)
-	}
-
-	keyList := make([]string, b.N)
-	for i := 0; i < b.N; i++ {
-		key := baseKey + strconv.Itoa(i)
-		keyList[i] = key
-		store.Put(key, val)
-	}
-	b.ResetTimer()
-	for _, key := range keyList {
-		_, err := store.Get(key)
-		if err != nil {
-			b.Errorf("Get has error %v", err)
-		}
-	}
-	b.StopTimer()
-}
-
-func BenchmarkGet100B(b *testing.B) {
-	benchGet(100, b)
-}
-
-func BenchmarkGet400B(b *testing.B) {
-	benchGet(400, b)
+// Get
+func BenchmarkGet32B(b *testing.B) {
+	benchGet(32, b)
 }
 
 func BenchmarkGet1KB(b *testing.B) {
-	benchGet(1000, b)
+	benchGet(1024, b)
 }
 
 func BenchmarkGet4KB(b *testing.B) {
-	benchGet(4000, b)
+	benchGet(4096, b)
 }
 
 func BenchmarkGet10KB(b *testing.B) {
-	benchGet(10000, b)
-}
-
-func BenchmarkGet40KB(b *testing.B) {
-	benchGet(40000, b)
-}
-
-func BenchmarkGet100KB(b *testing.B) {
-	benchGet(100000, b)
-}
-
-func BenchmarkGet400KB(b *testing.B) {
-	benchGet(400000, b)
-}
-
-func BenchmarkGet1MB(b *testing.B) {
-	benchGet(1000000, b)
-}
-
-func benchDelete(valSize int, b *testing.B) {
-	if testing.Short() && valSize > 100 {
-		b.Skip("Skipping delete benchmarks")
-		return
-	}
-
-	fmt.Printf("N=%d\n", b.N)
-
-	b.ReportAllocs()
-	store := setUpBench(b)
-	defer tearDownBench(store, b)
-	baseKey := "hello/hello"
-	val := make([]byte, valSize)
-	for i := int(0); i < valSize; i++ {
-		val[i] = uint8(i % 256)
-	}
-
-	keyList := make([]string, b.N)
-	for i := 0; i < b.N; i++ {
-		key := baseKey + strconv.Itoa(i)
-		keyList[i] = key
-		store.Put(key, val)
-	}
-	b.ResetTimer()
-	for _, key := range keyList {
-		err := store.Delete(key)
-		if err != nil {
-			b.Errorf("Get has error %v", err)
-		}
-	}
-	b.StopTimer()
-}
-
-func BenchmarkDelete100B(b *testing.B) {
-	benchDelete(100, b)
-}
-
-func BenchmarkDelete400B(b *testing.B) {
-	benchDelete(400, b)
-}
-
-func BenchmarkDelete1KB(b *testing.B) {
-	benchDelete(1000, b)
-}
-
-func BenchmarkDelete4KB(b *testing.B) {
-	benchDelete(4000, b)
-}
-
-func BenchmarkDelete10KB(b *testing.B) {
-	benchDelete(10000, b)
-}
-
-func BenchmarkDelete40KB(b *testing.B) {
-	benchDelete(40000, b)
-}
-
-func BenchmarkDelete100KB(b *testing.B) {
-	benchDelete(100000, b)
-}
-
-func BenchmarkDelete400KB(b *testing.B) {
-	benchDelete(400000, b)
-}
-
-func BenchmarkDelete1MB(b *testing.B) {
-	benchDelete(1000000, b)
+	benchGet(10240, b)
 }

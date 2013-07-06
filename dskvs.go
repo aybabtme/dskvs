@@ -80,7 +80,6 @@ func (s *Store) Load() error {
 	storeExists[s.storagePath] = true
 	storeExistsLock.Unlock()
 
-	// TODO scan the path for files, load them in memory
 	err := jan.loadStore(s)
 	if err != nil {
 		return err
