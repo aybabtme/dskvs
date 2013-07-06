@@ -20,7 +20,7 @@ const (
 	coll       = "games"
 	baseKey    = "total annihilation #"
 	goroutines = 10
-	byteSize   = 1000
+	byteSize   = 10000
 )
 
 func init() {
@@ -198,7 +198,7 @@ func runTest(
 		dTList = append(dTList, dT)
 	}
 
-	return newStats(dTList)
+	return newStats(dTList, byteSize)
 }
 
 func doPutRequest(ctx Context) {

@@ -2,6 +2,7 @@ package dskvs
 
 import (
 	"fmt"
+	"math"
 	"sort"
 	"strconv"
 	"strings"
@@ -30,6 +31,7 @@ func (l durationList) Less(i, j int) bool {
 
 type stats struct {
 	n      int
+	size   int
 	median time.Duration
 	avg    time.Duration
 	min    time.Duration
@@ -41,7 +43,7 @@ type stats struct {
 	p9999  time.Duration
 }
 
-func newStats(duration []time.Duration) stats {
+func newStats(duration []time.Duration, size int) stats {
 
 	N := len(duration)
 	if N == 0 {
@@ -56,6 +58,7 @@ func newStats(duration []time.Duration) stats {
 
 	return stats{
 		n:      N,
+		size:   size,
 		median: list[N/2],
 		avg:    avg(list),
 		min:    list[N-1],
@@ -87,21 +90,20 @@ func avg(list []time.Duration) time.Duration {
 func (s *stats) String() string {
 
 	total := float64(s.n) * s.avg.Seconds()
+	totalMem := s.n * s.size
 	persec := float64(s.n) / total
+	persecMem := float64(totalMem) / total
 
 	return fmt.Sprintf(
 		"N=%d,\n"+
-			"\t %s op/sec\n"+
-			"\t min   = %s\n"+
-			"\t max   = %s\n"+
-			"\t avg   = %s\n"+
-			"\t med   = %s\n"+
-			"\t p75   = %s\n"+
-			"\t p90   = %s\n"+
-			"\t p99   = %s\n"+
-			"\t p999  = %s\n"+
-			"\t p9999 = %s",
+			"\t bandwidth : %6s/s\t rate : %9s qps\n"+
+			"\t min   = %11s\t max   = %11s\n"+
+			"\t avg   = %11s\t med   = %11s\n"+
+			"\t p75   = %11s\t p90   = %11s\n"+
+			"\t p99   = %11s\t p999  = %11s\n"+
+			"\t p9999 = %11s",
 		s.n,
+		byteStr(uint64(persecMem)),
 		comma(int64(persec)),
 		s.min,
 		s.max,
@@ -114,8 +116,37 @@ func (s *stats) String() string {
 		s.p9999)
 }
 
-// Blatantly copied from `go-humanize`
-// https://github.com/dustin/go-humanize/blob/master/comma.go
+/*
+ * Stolen from "github.com/dustin/go-humanize"
+ * Don't want to bring it as a depencendy since
+ * it's only used for tests
+ */
+
+func logn(n, b float64) float64 {
+	return math.Log(n) / math.Log(b)
+}
+
+func humanateBytes(s uint64, base float64, sizes []string) string {
+	if s < 10 {
+		return fmt.Sprintf("%dB", s)
+	}
+	e := math.Floor(logn(float64(s), base))
+	suffix := sizes[int(e)]
+	val := float64(s) / math.Pow(base, math.Floor(e))
+	f := "%.0f "
+	if val < 10 {
+		f = "%.1f "
+	}
+
+	return fmt.Sprintf(f+"%s", val, suffix)
+
+}
+
+func byteStr(s uint64) string {
+	sizes := []string{"B", "KB", "MB", "GB", "TB", "PB", "EB"}
+	return humanateBytes(uint64(s), 1000, sizes)
+}
+
 func comma(v int64) string {
 	sign := ""
 	if v < 0 {
@@ -138,5 +169,5 @@ func comma(v int64) string {
 		j--
 	}
 	parts[j] = strconv.Itoa(int(v))
-	return sign + strings.Join(parts[j:len(parts)], "'")
+	return sign + strings.Join(parts[j:len(parts)], ",")
 }

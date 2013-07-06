@@ -70,55 +70,43 @@ pull-request.
 acceptable for now.
 ```
 2.3 GHz Intel Core i7, 8GB 1600 MHz DDR3, OS X 10.8.4
-Goroutines=1, unique key-value=2048, 100 bytes operations
+Concurrency Benchmark - Goroutines=10, unique key-value=2048
+Sequence of 10000 bytes operations by group, 10 concurrent request in each groups
+
 Put - first time
 N=2048,
-	 8'905 op/sec
-	 min   = 29.472us
-	 max   = 4.676918ms
-	 avg   = 112.285us
-	 med   = 97.672us
-	 p75   = 109.408us
-	 p90   = 134.222us
-	 p99   = 189.819us
-	 p999  = 2.421366ms
-	 p9999 = 4.676918ms
+	 bandwidth : 7.7 MB/s	 rate :       766 qps
+	 min   =   256.121us	 max   =  4.984934ms
+	 avg   =  1.305153ms	 med   =  1.194395ms
+	 p75   =  1.329744ms	 p90   =  1.596718ms
+	 p99   =  4.650752ms	 p999  =  4.977261ms
+	 p9999 =  4.984934ms
 Put - rewrite
 N=2048,
-	 10'226 op/sec
-	 min   = 3.453us
-	 max   = 9.886882ms
-	 avg   = 97.786us
-	 med   = 67.783us
-	 p75   = 85.199us
-	 p90   = 105.429us
-	 p99   = 207.353us
-	 p999  = 6.73288ms
-	 p9999 = 9.886882ms
+	 bandwidth : 8.7 MB/s	 rate :       869 qps
+	 min   =     4.484us	 max   =  9.908242ms
+	 avg   =  1.150016ms	 med   =   907.134us
+	 p75   =  1.023127ms	 p90   =  1.251781ms
+	 p99   =  7.656514ms	 p999  =  9.806725ms
+	 p9999 =  9.908242ms
 Get
 N=2048,
-	 2'557'544 op/sec
-	 min   = 189ns
-	 max   = 2.524us
-	 avg   = 391ns
-	 med   = 318ns
-	 p75   = 401ns
-	 p90   = 567ns
-	 p99   = 1.544us
-	 p999  = 2.279us
-	 p9999 = 2.524us
+	 bandwidth :  11 GB/s	 rate : 1,072,961 qps
+	 min   =       216ns	 max   =     9.943us
+	 avg   =       932ns	 med   =       899ns
+	 p75   =     1.092us	 p90   =     1.289us
+	 p99   =     1.735us	 p999  =     3.324us
+	 p9999 =     9.943us
 Delete
 N=2048,
-	 20'096 op/sec
-	 min   = 2.1us
-	 max   = 16.774411ms
-	 avg   = 49.76us
-	 med   = 35.834us
-	 p75   = 48.358us
-	 p90   = 59.506us
-	 p99   = 111.642us
-	 p999  = 617.158us
-	 p9999 = 16.774411ms
+	 bandwidth :  17 MB/s	 rate :     1,745 qps
+	 min   =     4.245us	 max   = 22.290594ms
+	 avg   =   572.931us	 med   =   446.827us
+	 p75   =   532.494us	 p90   =   677.701us
+	 p99   =  1.157741ms	 p999  = 22.145781ms
+	 p9999 = 22.290594ms
+by 8 cpus, using 10 concurrent goroutines
+
 ```
 
 
