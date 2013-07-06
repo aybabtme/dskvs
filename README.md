@@ -16,10 +16,12 @@ the RAM of a single host, `dskvs` is the right thing for you.
 ## Status
 Test coverage is good, but this is alpha release. Use at your own risks.
 
-Future plan are to build a few apps using `dskvs` to provide a proof-of-concept
+Future plans are to build a few apps using `dskvs` to provide a proof-of-concept
 for the current features.
 
 ## At a glance
+`Put` and `Get` arbitrarily sized slices of bytes.  _Arbitrarily_ is a word that
+holds for as long as you have free RAM (=
 
 ```go
 // Create a store
@@ -35,7 +37,7 @@ value, err := store.Get("artist/daft_punk")
 values, err := store.GetAll("artist")
 
 // Put
-oldValue, err := store.Put("artist/daft_punk", "{ quality:'epic' }")
+oldValue, err := store.Put("artist/daft_punk", []byte("{ quality:'epic' }"))
 
 // Delete
 err := store.Delete("artist/celine_dion")
