@@ -277,7 +277,11 @@ func generateKeyValueList(kvCount int64, t *testing.T) []keyValue {
 
 	kvList := make([]keyValue, kvCount)
 	for i := int64(0); i < kvCount; i++ {
-		key := coll + CollKeySep + baseKey + strconv.FormatInt(i, 10)
+		key := coll +
+			CollKeySep +
+			baseKey +
+			strconv.FormatInt(i, 10)
+
 		data := make([]byte, byteSize)
 		//data := generateData(Data{"It's fun!"}, t)
 		kv := keyValue{key, data}

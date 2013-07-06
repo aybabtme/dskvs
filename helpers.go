@@ -7,8 +7,6 @@ import (
 	"strings"
 )
 
-const CollKeySep = "/"
-
 func checkKeyValid(key string) error {
 	idxSeperator := strings.Index(key, CollKeySep)
 	if idxSeperator == 0 {

@@ -10,22 +10,34 @@ To start using dskvs, create a Store object with dskvs.NewStore, specifying
 where in the current filesystem to save the Store's files. Then, call store.Load
 to load any pre-existing collections and/or members into your store instance.
 When you're done using the store, call store.Close, which finishes writing the
-last updates package dskvs
+last updates.
 
 */
 package dskvs
 
 import (
+	"path/filepath"
 	"sync"
 )
 
 const (
+	// MAJOR_VERSION is used to ensure that incompatible fileformat versions are
+	// not loaded in memory.
 	MAJOR_VERSION uint16 = 0
+	// MINOR_VERSION is used to differentiate between fileformat versions. It might
+	// be used for migrations if a future change to dskvs breaks the original
+	// fileformat contract
 	MINOR_VERSION uint16 = 1
+	// PATCH_VERSION is used for the same reasons as MINOR_VERSION
 	PATCH_VERSION uint64 = 0
 )
 
 var (
+	// CollKeySep is the value used by dskvs to separate the
+	// collection part of the full key from the member part.  This is usually
+	// '/' on Unix systems.
+	CollKeySep = string(filepath.Separator)
+
 	storeExistsLock sync.RWMutex
 	storeExists     map[string]bool
 	jan             janitor
