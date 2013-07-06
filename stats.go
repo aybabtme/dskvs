@@ -89,7 +89,7 @@ func avg(list []time.Duration) time.Duration {
 
 func (s *stats) String() string {
 
-	total := float64(s.n) * s.avg.Seconds()
+	total := float64(s.n) * s.median.Seconds()
 	totalMem := s.n * s.size
 	persec := float64(s.n) / total
 	persecMem := float64(totalMem) / total
