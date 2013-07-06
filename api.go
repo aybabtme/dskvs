@@ -121,6 +121,9 @@ func (s *Store) Close() error {
 //
 // will get the value attached to Daft Punk, from within the Artists
 // collection
+//
+// ATTENTION : do not modify the value of the slices that are returned to
+// you.
 func (s *Store) Get(fullKey string) ([]byte, error) {
 	if !s.isLoaded {
 		return nil, errorStoreNotLoaded(s)
@@ -139,7 +142,10 @@ func (s *Store) Get(fullKey string) ([]byte, error) {
 	return s.coll.get(coll, key)
 }
 
-// GetAll returns all the members' value in the collection `coll`.
+// GetAll returns all the members in the collection `coll`.
+//
+// ATTENTION : do not modify the value of the slices that are returned to
+// you.
 func (s *Store) GetAll(coll string) ([][]byte, error) {
 	if !s.isLoaded {
 		return nil, errorStoreNotLoaded(s)
