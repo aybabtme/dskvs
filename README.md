@@ -10,14 +10,14 @@ stores it's data in two layers of maps, which are routinely persisted to disk
 by a janitor.
 
 `dskvs` stands for Dead Simple Key-Value Store.  The aim of this library is to
-provide storage solution for _Small Data_™ apps.  If your data-set holds within
+provide storage solution for _Small Data_™ apps.  If your data set holds within
 the RAM of a single host, `dskvs` is the right thing for you.
 
 ## Status
-Holds within 952 lines of Go code, tested by an extra 1k lines.
+Test coverage is good, but this is alpha release. Use at your own risks.
 
-This project is not yet ready for anybody's usage, it is still under development and has not been extensively tested.
-
+Future plan are to build a few apps using `dskvs` to provide a proof-of-concept
+for the current features.
 
 ## At a glance
 
@@ -47,9 +47,9 @@ err := store.DeleteAll("artist")
 store.Close()
 ```
 
-There is currently no support for replication of any sort.  There are already
-dozens of highly specialized data-store providing this sort of features,
-`dskvs` is not one of them.
+There is no support for replication of any sort, and there won't be. There are already
+dozens of highly specialized data store providing this sort of features,
+`dskvs` is not one of them. `dskvs` is an embedded data store.
 
 ## Usage
 `go get` the master branch.
@@ -67,7 +67,9 @@ pull-request.
 ## Performance
 
 `dskvs` is not optimized and requires much work.  However, performance is
-acceptable for now.
+acceptable for now.  The following is the results of 10K read/writes by 10
+goroutines.  The results for a single goroutine at a time are much higher,
+but somehow meaningless in Go World.
 ```
 2.3 GHz Intel Core i7, 8GB 1600 MHz DDR3, OS X 10.8.4
 Concurrency Benchmark - Goroutines=10, unique key-value=2048
@@ -116,12 +118,9 @@ concurrently, read and write to stores concurrently.  Safe concurrent access
 are part of the implementation because `dskvs` is expected to be used for
 concurrent apps.
 
-God help you if you load two `Store`s that share some part of the filesystem.
-A check for that is not implemented.
-
-I might add an unsafe version of `Store` in the future if there's evidence of
-notable performance gains, if there's a use case for it and if it doesn't
-uglify the code.
+God help you if you load two `Store` that share some part of their filepath.
+Just don't do it.  Two `Store` share a similar path if they have any common files
+in their file tree.
 
 ## Eventually persisted ?
 The term is a pun on 'eventual consistency', but has nothing to do with the
@@ -139,15 +138,13 @@ will be correct, as they are served from memory.
 See `dskvs` as big cache that happens to be backed up to disk very frequently.
 
 ## Not `PutAll` ?
-The basic API for `dskvs` should be `Get`, `Put` and `Delete`.  However, since
-`dskvs` supports 'collection/members', there's no practical way to query for
-all members, while `dskvs` has facility to act on aggregates.  So it makes
-sense for `dskvs` to provide `GetAll` and `DeleteAll` since it has better
-visibility on what `All` represents in those cases.
+A `PutAll` method would simply call `Put` for every entry if your slice.  There
+is no _special_ way to optimize a `PutAll` to perform better than as many `Put`
+calls, so it was not added to the API.
 
-This is not true for `PutAll`.  There's no added value in having `dskvs`
-`Put` all your values for you, one by one, as it would results in it simply
-calling `Put` on all your values.
+There are good ways to optimize `GetAll` and `DeleteAll`, which explains their
+presence and the incongruence of a missing `PutAll`.
 
 ## License
+
 An MIT license, see the LICENSE file.
