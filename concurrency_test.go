@@ -135,7 +135,7 @@ func TestConcurrentPutCanBeGetAllAndDeleteAll(t *testing.T) {
 	expectedList := generateKeyValueList(kvCount, t)
 
 	// Don't care about the stats
-	_ = runTest(doPutRequest, 1, 100, store, expectedList, t)
+	_ = runTest(doPutRequest, 1, goroutines, store, expectedList, t)
 
 	actual, err := store.GetAll(coll)
 	if err != nil {
