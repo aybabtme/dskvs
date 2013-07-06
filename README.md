@@ -55,6 +55,7 @@ dozens of highly specialized data store providing this sort of features,
 
 ## Documentation
 
+Look it up on [GoDoc](http://godoc.org/github.com/aybabtme/dskvs)
 
 ## Usage
 `go get` the master branch.
