@@ -37,7 +37,7 @@ value, err := store.Get("artist/daft_punk")
 values, err := store.GetAll("artist")
 
 // Put
-oldValue, err := store.Put("artist/daft_punk", []byte("{ quality:'epic' }"))
+err := store.Put("artist/daft_punk", []byte("{ quality:'epic' }"))
 
 // Delete
 err := store.Delete("artist/celine_dion")
