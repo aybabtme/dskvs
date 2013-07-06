@@ -1,231 +1,68 @@
 /*
 
-Package dskvs is a key value store.  In this store, there are two level or
-mapping.  The store is organized in collections that hold members.  Each member
-is represented by a page.  Each collection is represented by a map of members.
+Package dskvs is an embedded, in memory key value store following the REST
+convention of adressing resources as being 'collections' and 'members'.
 
-dskvs addresses members using a 'collection/member' convention.
+The main features of dskvs are:
 
-To start using dskvs, create a Store object with dskvs.NewStore, specifying
-where in the current filesystem to save the Store's files. Then, call store.Load
-to load any pre-existing collections and/or members into your store instance.
-When you're done using the store, call store.Close, which finishes writing the
-last updates.
+	- very high read performance
+	- high write performance
+	- safe for concurrent use by multiple readers/writers.
+	- every read/write is done in memory.  Writes are persisted asynchronously
+	- remains usable under heavy concurrent usage, although throughput is not-optimal
+	- can load []byte values of any size
+	- persisted files are always verified for consistency
 
+In dskvs, a collection contains many members, a member contains a value. A full
+key is a combination of both the collection and member identifiers to a value.
+
+Example:
+
+	fullkey := "artist" + CollKeySep + "Daft Punk"
+
+In this example, 'artist' is a collection that contains many artists.  'Daft Punk'
+is one of those artists.
+
+Example:
+
+	fullkey := "artist" + CollKeySep + "Daft Punk" + CollKeySep + "Discovery.."
+
+
+A fullkey can contain many CollKeySep; only the first encountered is considered
+for the collection name.
+
+Every entry of dskvs is saved as a file under a path.  If you tell dskvs to use
+the base path "/home/aybabtme/dskvs", it will prepare a filename for your key
+such as :
+
+	colletion := "This Collection"
+	key       := "Is the Greatest!!!"
+
+	escapedKey   := filepathSafe(key)  // escapes all dangerous characters
+	truncatedKey := escapedKey[:40]    // truncate the key to 40 runes
+
+	member := truncatedKey + sha1(key) // append the truncated key to the SHA1 of
+	                                   // the original key to prevent collisions
+
+dskvs will then write the entry at the path :
+
+	/home/aybabtme/dskvs/<collection>/<member>
+
+Example:
+
+	fullkey    := "artist" + CollKeySep + "Daft Punk" + CollKeySep + "Discovery.."
+
+	collection := "artist"
+	member     := "Daft+Punk%2FDiscovery..446166742050756e6b2f446973636f766572792e2eda39a3ee5e6b4b0d3255bfef95601890afd80709"
+
+
+Given that keys have their value escaped, you can safely use any key:
+
+	fullkey := "My Collection/../../"
+
+Will yield :
+
+	collection == "My Collection"
+	member == "..%2F..%2F2e2e2f2e2e2fda39a3ee5e6b4b0d3255bfef95601890afd80709"
 */
 package dskvs
-
-import (
-	"path/filepath"
-	"sync"
-)
-
-const (
-	// MAJOR_VERSION is used to ensure that incompatible fileformat versions are
-	// not loaded in memory.
-	MAJOR_VERSION uint16 = 0
-	// MINOR_VERSION is used to differentiate between fileformat versions. It might
-	// be used for migrations if a future change to dskvs breaks the original
-	// fileformat contract
-	MINOR_VERSION uint16 = 1
-	// PATCH_VERSION is used for the same reasons as MINOR_VERSION
-	PATCH_VERSION uint64 = 0
-)
-
-var (
-	// CollKeySep is the value used by dskvs to separate the
-	// collection part of the full key from the member part.  This is usually
-	// '/' on Unix systems.
-	CollKeySep = string(filepath.Separator)
-
-	storeExistsLock sync.RWMutex
-	storeExists     map[string]bool
-	jan             janitor
-)
-
-func init() {
-	storeExists = make(map[string]bool)
-	jan = newJanitor()
-}
-
-// Store provides methods to manipulate the data held in memory and on disk at
-// the path that was specified when you instantiated it.  Every store instance
-// points at a different path location on disk.  Beware if you create a store
-// that lives within the tree of another store.  There's no garantee to what
-// will happen, aside perhaps a garantee that things will go wrong.
-type Store struct {
-	isLoaded    bool
-	storagePath string
-	coll        *collections
-}
-
-/*
-	Meta operations on Store
-*/
-
-// NewStore instantiate a new store reading from the specified path
-func NewStore(path string) (*Store, error) {
-
-	if !isValidPath(path) {
-		return nil, errorPathInvalid(path)
-	}
-
-	basepath := expandPath(path)
-	return &Store{
-		false,                    // isLoaded
-		basepath,                 // storagePath
-		newCollections(basepath), // collections
-	}, nil
-}
-
-// Load loads the files in memory. This call will block for disk IO.
-func (s *Store) Load() error {
-	storeExistsLock.RLock()
-	exists := storeExists[s.storagePath]
-	storeExistsLock.RUnlock()
-
-	if exists {
-		return errorPathInUse(s.storagePath)
-	}
-
-	storeExistsLock.Lock()
-	storeExists[s.storagePath] = true
-	storeExistsLock.Unlock()
-
-	err := jan.loadStore(s)
-	if err != nil {
-		return err
-	}
-	jan.run()
-
-	s.isLoaded = true
-	return nil
-}
-
-// Close finishes writing dirty updates and closes all the files. Report any
-// error occuring doing so. This call will block for disk IO.
-func (s *Store) Close() error {
-	if !s.isLoaded {
-		return errorStoreNotLoaded(s)
-	}
-
-	s.isLoaded = false
-
-	storeExistsLock.Lock()
-	delete(storeExists, s.storagePath)
-	storeExistsLock.Unlock()
-
-	err := jan.unloadStore(s)
-	if err != nil {
-		jan.die()
-		return err
-	}
-
-	return nil
-}
-
-/*
-	Storage operations
-*/
-
-// Get returns the value refernced by the `fullKey` given in argument. A
-// `fullKey` is a string that has a collection identifier and a member
-// identifier, separated by `CollKeySep`, Ex:
-//
-//	val, err := store.Get("artists/daft_punk")
-//
-// will get the value attached to Daft Punk, from within the Artists
-// collection
-func (s *Store) Get(fullKey string) ([]byte, error) {
-	if !s.isLoaded {
-		return nil, errorStoreNotLoaded(s)
-	}
-
-	if err := checkKeyValid(fullKey); err != nil {
-		return nil, err
-	}
-
-	if isCollectionKey(fullKey) {
-		return nil, errorGetIsColl(fullKey)
-	}
-
-	coll, key := splitKeys(fullKey)
-
-	return s.coll.get(coll, key)
-}
-
-// GetAll returns all the members' value in the collection `coll`.
-func (s *Store) GetAll(coll string) ([][]byte, error) {
-	if !s.isLoaded {
-		return nil, errorStoreNotLoaded(s)
-	}
-
-	if err := checkKeyValid(coll); err != nil {
-		return nil, err
-	}
-
-	if !isCollectionKey(coll) {
-		return nil, errorGetAllIsNotColl(coll)
-	}
-
-	return s.coll.getCollection(coll)
-}
-
-// Put saves the given value into the key location.  `fullKey` should be a
-// member,  not a collection.  There is no `PutAll` version of this
-// call.  If you wish to add a collection all at once, iterate over your
-// collection and call `Put` on each member.
-func (s *Store) Put(fullKey string, value []byte) error {
-	if !s.isLoaded {
-		return errorStoreNotLoaded(s)
-	}
-
-	if err := checkKeyValid(fullKey); err != nil {
-		return err
-	}
-
-	if isCollectionKey(fullKey) {
-		return errorPutIsColl(fullKey, string(value))
-	}
-
-	coll, key := splitKeys(fullKey)
-
-	s.coll.put(coll, key, value)
-	return nil
-}
-
-// Delete removes member with `fullKey` from the storage.
-func (s *Store) Delete(fullKey string) error {
-	if !s.isLoaded {
-		return errorStoreNotLoaded(s)
-	}
-
-	if err := checkKeyValid(fullKey); err != nil {
-		return err
-	}
-
-	if isCollectionKey(fullKey) {
-		return errorDeleteIsColl(fullKey)
-	}
-
-	coll, key := splitKeys(fullKey)
-
-	return s.coll.deleteKey(coll, key)
-}
-
-// DeleteAll removes all the members in collection `coll`
-func (s *Store) DeleteAll(coll string) error {
-	if !s.isLoaded {
-		return errorStoreNotLoaded(s)
-	}
-
-	if err := checkKeyValid(coll); err != nil {
-		return err
-	}
-
-	if !isCollectionKey(coll) {
-		return errorDeleteAllIsNotColl(coll)
-	}
-
-	return s.coll.deleteCollection(coll)
-}
