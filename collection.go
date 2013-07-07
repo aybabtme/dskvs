@@ -56,9 +56,11 @@ func (c *collections) put(coll, key string, value []byte) {
 		if !ok {
 			m = newMember(c.basepath, coll)
 			c.members[coll] = m
+			c.Unlock()
 			jan.ToCreate <- m
+		} else {
+			c.Unlock()
 		}
-		c.Unlock()
 	}
 	m.put(key, value)
 }

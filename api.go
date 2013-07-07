@@ -77,6 +77,10 @@ func (s *Store) Load() error {
 	}
 
 	storeExistsLock.Lock()
+	if !exists && storeExists[s.storagePath] {
+		storeExistsLock.Unlock()
+		return errorPathInUse(s.storagePath)
+	}
 	storeExists[s.storagePath] = true
 	storeExistsLock.Unlock()
 

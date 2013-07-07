@@ -53,6 +53,10 @@ There is no support for replication of any sort, and there won't be. There are a
 dozens of highly specialized data store providing this sort of features,
 `dskvs` is not one of them. `dskvs` is an embedded data store.
 
+## Documentation
+
+Look it up on [GoDoc](http://godoc.org/github.com/aybabtme/dskvs)
+
 ## Usage
 `go get` the master branch.
 
