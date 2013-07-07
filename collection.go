@@ -57,7 +57,7 @@ func (c *collections) put(coll, key string, value []byte) {
 			m = newMember(c.basepath, coll)
 			c.members[coll] = m
 			c.Unlock()
-			jan.ToCreate <- m
+			jan.createFolder(m)
 		} else {
 			c.Unlock()
 		}
@@ -97,7 +97,7 @@ func (c *collections) deleteCollection(coll string) error {
 		// TODO : This is not really necessary, can just delete the folder
 		// at once and save some IO.
 		m.deleteAll()
-		jan.ToDelete <- m
+		jan.deleteFolder(m)
 	} else {
 		return errorNoSuchColl(coll)
 	}

@@ -48,7 +48,7 @@ func (p *page) set(value []byte) {
 	p.isDirty = true
 	p.Unlock()
 	if !wasDirty {
-		jan.DirtyPages <- p
+		jan.writePage(p)
 	}
 }
 
@@ -60,6 +60,6 @@ func (p *page) delete() {
 	p.isDeleted = true
 	p.Unlock()
 	if !wasDirty {
-		jan.DirtyPages <- p
+		jan.writePage(p)
 	}
 }

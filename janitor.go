@@ -5,24 +5,103 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"sync/atomic"
 )
 
 type janitor struct {
-	DirtyPages         chan *page
-	ToDelete           chan *member
-	ToCreate           chan *member
+	toWriteChan  chan *page
+	toWriteCount int64
+
+	toDeleteChan  chan *member
+	toDeleteCount int64
+
+	toCreateChan  chan *member
+	toCreateCount int64
+
 	mustDie            chan bool
 	blockUntilFinished chan bool
 }
 
 func newJanitor() janitor {
 	return janitor{
-		make(chan *page),
-		make(chan *member),
-		make(chan *member),
-		make(chan bool),
-		make(chan bool),
+		make(chan *page), 0,
+		make(chan *member), 0,
+		make(chan *member), 0,
+		make(chan bool, 1),
+		make(chan bool, 1),
 	}
+}
+
+func (j *janitor) writePage(p *page) {
+	atomic.AddInt64(&j.toWriteCount, 1)
+	j.toWriteChan <- p
+}
+
+func (j *janitor) createFolder(m *member) {
+	atomic.AddInt64(&j.toCreateCount, 1)
+	j.toCreateChan <- m
+}
+
+func (j *janitor) deleteFolder(m *member) {
+	atomic.AddInt64(&j.toDeleteCount, 1)
+	j.toDeleteChan <- m
+}
+
+func (j *janitor) hasNoFolderOps() chan *page {
+	if j.toCreateCount != 0 {
+		return nil
+	}
+	if j.toDeleteCount != 0 {
+		return nil
+	}
+	return j.toWriteChan
+}
+
+func (j *janitor) shouldDie() chan bool {
+
+	backlog := j.toCreateCount +
+		j.toDeleteCount +
+		j.toWriteCount
+
+	if backlog != 0 && len(j.mustDie) != 0 {
+
+		log.Printf("Dying - backlog: write=%d, rmdir=%d, mkdir=%d",
+			j.toWriteCount,
+			j.toDeleteCount,
+			j.toCreateCount)
+
+		return nil
+	}
+	return j.mustDie
+}
+
+func (j *janitor) run() {
+	go func() {
+		for {
+			select {
+			case page := <-j.hasNoFolderOps():
+				atomic.AddInt64(&j.toWriteCount, -1)
+				writeToFile(page)
+
+			case member := <-j.toDeleteChan:
+				atomic.AddInt64(&j.toDeleteCount, -1)
+				deleteFolder(member)
+
+			case member := <-j.toCreateChan:
+				atomic.AddInt64(&j.toCreateCount, -1)
+				createFolder(member)
+
+			case <-j.shouldDie():
+				j.blockUntilFinished <- false
+				return
+			}
+
+		}
+	}()
+}
+
+func (j *janitor) die() {
+	j.mustDie <- true
 }
 
 func (j *janitor) loadStore(s *Store) error {
@@ -78,52 +157,4 @@ func (j *janitor) unloadStore(s *Store) error {
 	j.die()
 	<-j.blockUntilFinished
 	return nil
-}
-
-func (j *janitor) dirtyPageIfNoMember() chan *page {
-	if len(j.ToCreate) != 0 {
-		return nil
-	}
-	if len(j.ToDelete) != 0 {
-		return nil
-	}
-	return j.DirtyPages
-}
-
-func (j *janitor) shouldDie() chan bool {
-	createBacklog := len(j.ToCreate)
-	deleteBacklog := len(j.ToDelete)
-	pageBacklog := len(j.DirtyPages)
-
-	if createBacklog != 0 ||
-		deleteBacklog != 0 ||
-		pageBacklog != 0 {
-		log.Printf("Janitor has backlog of length %d",
-			createBacklog+deleteBacklog+pageBacklog)
-		return nil
-	}
-	return j.mustDie
-}
-
-func (j *janitor) run() {
-	go func() {
-		for {
-			select {
-			case dirty := <-j.dirtyPageIfNoMember():
-				writeToFile(dirty)
-			case delete := <-j.ToDelete:
-				deleteFolder(delete)
-			case create := <-j.ToCreate:
-				createFolder(create)
-			case <-j.shouldDie():
-				j.blockUntilFinished <- false
-				return
-			}
-
-		}
-	}()
-}
-
-func (j *janitor) die() {
-	j.mustDie <- true
 }
