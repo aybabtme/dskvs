@@ -89,6 +89,7 @@ func (s *Store) Close() error {
 	storeExistsLock.Unlock()
 
 	err := jan.unloadStore(s)
+	s = nil
 	if err != nil {
 		jan.die()
 		return err
@@ -108,7 +109,7 @@ func (s *Store) Close() error {
 //
 // ATTENTION : do not modify the value of the slices that are returned to
 // you.
-func (s *Store) Get(fullKey string) ([]byte, error) {
+func (s Store) Get(fullKey string) ([]byte, error) {
 
 	if err := checkKeyValid(fullKey); err != nil {
 		return nil, err
@@ -127,7 +128,7 @@ func (s *Store) Get(fullKey string) ([]byte, error) {
 //
 // ATTENTION : do not modify the value of the slices that are returned to
 // you.
-func (s *Store) GetAll(coll string) ([][]byte, error) {
+func (s Store) GetAll(coll string) ([][]byte, error) {
 
 	if err := checkKeyValid(coll); err != nil {
 		return nil, err
@@ -144,7 +145,7 @@ func (s *Store) GetAll(coll string) ([][]byte, error) {
 // member,  not a collection.  There is no `PutAll` version of this
 // call.  If you wish to add a collection all at once, iterate over your
 // collection and call `Put` on each member.
-func (s *Store) Put(fullKey string, value []byte) error {
+func (s Store) Put(fullKey string, value []byte) error {
 
 	if err := checkKeyValid(fullKey); err != nil {
 		return err
@@ -161,7 +162,7 @@ func (s *Store) Put(fullKey string, value []byte) error {
 }
 
 // Delete removes member with `fullKey` from the storage.
-func (s *Store) Delete(fullKey string) error {
+func (s Store) Delete(fullKey string) error {
 
 	if err := checkKeyValid(fullKey); err != nil {
 		return err
@@ -177,7 +178,7 @@ func (s *Store) Delete(fullKey string) error {
 }
 
 // DeleteAll removes all the members in collection `coll`
-func (s *Store) DeleteAll(coll string) error {
+func (s Store) DeleteAll(coll string) error {
 
 	if err := checkKeyValid(coll); err != nil {
 		return err

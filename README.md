@@ -24,11 +24,8 @@ for the current features.
 holds for as long as you have free RAM (=
 
 ```go
-// Create a store
-store := dskvs.NewStore("/home/aybabtme/music")
-
-// Create persistance artifacts and loads data already on disk
-store.Load()
+// Open a store at the given path.  Existing artifacts are loaded in memory
+store, err := dskvs.Open("/home/aybabtme/music")
 
 // Get
 value, err := store.Get("artist/daft_punk")
@@ -45,8 +42,8 @@ err := store.Delete("artist/celine_dion")
 // Delete all
 err := store.DeleteAll("artist")
 
-// Finish writing, close files.
-store.Close()
+// Finish persisting changes, then close the store.
+err := store.Close()
 ```
 
 There is no support for replication of any sort, and there won't be. There are already
