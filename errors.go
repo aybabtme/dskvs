@@ -14,10 +14,9 @@ func (e StoreError) Error() string {
 	return e.What
 }
 
-func errorStoreNotLoaded(s *Store) error {
+func errorStoreNotLoaded() error {
 	return StoreError{
-		fmt.Sprintf("Store with path <%s> has not yet been loaded",
-			s.storagePath),
+		"Store is nil",
 	}
 }
 

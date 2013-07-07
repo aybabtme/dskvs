@@ -39,14 +39,9 @@ func genKeys() []string {
 }
 
 func setUpBench(b *testing.B) *Store {
-	store, err := NewStore("./db")
+	store, err := Open("./db")
 	if err != nil {
-		b.Fatalf("Error creating store, %v", err)
-	}
-
-	err = store.Load()
-	if err != nil {
-		b.Fatalf("Error loading store, %v", err)
+		b.Fatalf("Error opening store, %v", err)
 	}
 	return store
 }

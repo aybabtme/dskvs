@@ -12,7 +12,7 @@ const (
 	// MINOR_VERSION is used to differentiate between fileformat versions. It might
 	// be used for migrations if a future change to dskvs breaks the original
 	// fileformat contract
-	MINOR_VERSION uint16 = 1
+	MINOR_VERSION uint16 = 2
 	// PATCH_VERSION is used for the same reasons as MINOR_VERSION
 	PATCH_VERSION uint64 = 0
 )
@@ -39,7 +39,6 @@ func init() {
 // that lives within the tree of another store.  There's no garantee to what
 // will happen, aside perhaps a garantee that things will go wrong.
 type Store struct {
-	isLoaded    bool
 	storagePath string
 	coll        *collections
 }
@@ -48,61 +47,54 @@ type Store struct {
 	Meta operations on Store
 */
 
-// NewStore instantiate a new store reading from the specified path
-func NewStore(path string) (*Store, error) {
+// Load retrieves previously persisted entries and load them in memory.
+// Every file is checked for consistency with a SHA1 checksum.  A file that
+// is not consistent will be ignored, a log message emitted and an error
+// returned.  This call will block until all collections have been replenished.
+func Open(path string) (*Store, error) {
 
 	if !isValidPath(path) {
 		return nil, errorPathInvalid(path)
 	}
 
 	basepath := expandPath(path)
-	return &Store{
-		false,                    // isLoaded
-		basepath,                 // storagePath
-		newCollections(basepath), // collections
-	}, nil
-}
 
-// Load retrieves previously persisted entries and load them in memory.
-// Every file is checked for consistency with a SHA1 checksum.  A file that
-// is not consistent will be ignored, a log message emitted and an error
-// returned.  This call will block until all collections have been replenished.
-func (s *Store) Load() error {
 	storeExistsLock.RLock()
-	exists := storeExists[s.storagePath]
+	exists := storeExists[basepath]
+	if exists {
+		storeExistsLock.RUnlock()
+		return nil, errorPathInUse(basepath)
+	}
 	storeExistsLock.RUnlock()
 
-	if exists {
-		return errorPathInUse(s.storagePath)
-	}
-
 	storeExistsLock.Lock()
-	if !exists && storeExists[s.storagePath] {
+	if !exists && storeExists[basepath] {
 		storeExistsLock.Unlock()
-		return errorPathInUse(s.storagePath)
+		return nil, errorPathInUse(basepath)
 	}
-	storeExists[s.storagePath] = true
+	storeExists[basepath] = true
 	storeExistsLock.Unlock()
+
+	s := &Store{basepath, newCollections(basepath)}
 
 	err := jan.loadStore(s)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	jan.run()
 
-	s.isLoaded = true
-	return nil
+	return s, nil
+
 }
 
 // Close finishes writing dirty updates and closes all the files. It reports
 // any error that occured doing so. This call will block until the writes are
 // completed.
 func (s *Store) Close() error {
-	if !s.isLoaded {
-		return errorStoreNotLoaded(s)
-	}
 
-	s.isLoaded = false
+	if s == nil {
+		return errorStoreNotLoaded()
+	}
 
 	storeExistsLock.Lock()
 	delete(storeExists, s.storagePath)
@@ -129,9 +121,6 @@ func (s *Store) Close() error {
 // ATTENTION : do not modify the value of the slices that are returned to
 // you.
 func (s *Store) Get(fullKey string) ([]byte, error) {
-	if !s.isLoaded {
-		return nil, errorStoreNotLoaded(s)
-	}
 
 	if err := checkKeyValid(fullKey); err != nil {
 		return nil, err
@@ -151,9 +140,6 @@ func (s *Store) Get(fullKey string) ([]byte, error) {
 // ATTENTION : do not modify the value of the slices that are returned to
 // you.
 func (s *Store) GetAll(coll string) ([][]byte, error) {
-	if !s.isLoaded {
-		return nil, errorStoreNotLoaded(s)
-	}
 
 	if err := checkKeyValid(coll); err != nil {
 		return nil, err
@@ -171,9 +157,6 @@ func (s *Store) GetAll(coll string) ([][]byte, error) {
 // call.  If you wish to add a collection all at once, iterate over your
 // collection and call `Put` on each member.
 func (s *Store) Put(fullKey string, value []byte) error {
-	if !s.isLoaded {
-		return errorStoreNotLoaded(s)
-	}
 
 	if err := checkKeyValid(fullKey); err != nil {
 		return err
@@ -191,9 +174,6 @@ func (s *Store) Put(fullKey string, value []byte) error {
 
 // Delete removes member with `fullKey` from the storage.
 func (s *Store) Delete(fullKey string) error {
-	if !s.isLoaded {
-		return errorStoreNotLoaded(s)
-	}
 
 	if err := checkKeyValid(fullKey); err != nil {
 		return err
@@ -210,9 +190,6 @@ func (s *Store) Delete(fullKey string) error {
 
 // DeleteAll removes all the members in collection `coll`
 func (s *Store) DeleteAll(coll string) error {
-	if !s.isLoaded {
-		return errorStoreNotLoaded(s)
-	}
 
 	if err := checkKeyValid(coll); err != nil {
 		return err

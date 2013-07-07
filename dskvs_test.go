@@ -17,14 +17,9 @@ type Data struct {
 ///////////////////////////////////////////////////////////////////////////////
 
 func setUp(t *testing.T) *Store {
-	store, err := NewStore("./db")
+	store, err := Open("./db")
 	if err != nil {
-		t.Fatalf("Error creating store, %v", err)
-	}
-
-	err = store.Load()
-	if err != nil {
-		t.Fatalf("Error loading store, %v", err)
+		t.Fatalf("Error opening store, %v", err)
 	}
 	return store
 }
@@ -371,7 +366,7 @@ func TestErrorWhenStorePointToNonDirectoryPath(t *testing.T) {
 	}
 	defer os.Remove(filename)
 
-	store, err := NewStore(filename)
+	store, err := Open(filename)
 	if _, isRightType := err.(PathError); !isRightType {
 		defer tearDown(store, t)
 		t.Errorf("Should have returned an error of type PathError")
@@ -382,76 +377,20 @@ func TestErrorWhenStorePointToNonDirectoryPath(t *testing.T) {
 
 func TestErrorWhenStoreAlreadyUsingPath(t *testing.T) {
 	path := "a_busy_path"
-	store, err := NewStore(path)
+	store, err := Open(path)
 	if err != nil {
 		t.Fatalf("Error creating test store, %v", err)
-	}
-	if err := store.Load(); err != nil {
-		t.Fatalf("Error loading test store, %v", err)
 	}
 	defer tearDown(store, t)
 
-	another, err := NewStore(path)
-	if err != nil {
-		t.Fatalf("Error creating second test store, %v", err)
-	}
-	err = another.Load()
+	another, err := Open(path)
 	if _, isRightType := err.(PathError); !isRightType {
-		defer tearDown(another, t)
 		t.Errorf("Should have returned an error of type PathError, was %v",
 			err)
+
+		another.Close()
 	}
 	err.Error() // Call it to make gocov happy
-}
-
-func TestErrorWhenStoreNotLoaded(t *testing.T) {
-	path := "a_busy_path"
-	store, err := NewStore(path)
-	if err != nil {
-		t.Fatalf("Error creating test store, %v", err)
-	}
-	err = store.Close()
-	if _, isRightType := err.(StoreError); !isRightType {
-		t.Errorf("Should have returned an error of type StoreError, was %v",
-			err)
-	}
-	err.Error() // Call it to make gocov happy
-
-	_, err = store.Get("coll/key")
-	if _, isRightType := err.(StoreError); !isRightType {
-		t.Errorf("Should have returned an error of type StoreError, was %v",
-			err)
-	}
-	err.Error() // Call it to make gocov happy
-
-	_, err = store.GetAll("coll")
-	if _, isRightType := err.(StoreError); !isRightType {
-		t.Errorf("Should have returned an error of type StoreError, was %v",
-			err)
-	}
-	err.Error() // Call it to make gocov happy
-
-	err = store.Put("coll/key", nil)
-	if _, isRightType := err.(StoreError); !isRightType {
-		t.Errorf("Should have returned an error of type StoreError, was %v",
-			err)
-	}
-	err.Error() // Call it to make gocov happy
-
-	err = store.Delete("coll/key")
-	if _, isRightType := err.(StoreError); !isRightType {
-		t.Errorf("Should have returned an error of type StoreError, was %v",
-			err)
-	}
-	err.Error() // Call it to make gocov happy
-
-	err = store.DeleteAll("coll")
-	if _, isRightType := err.(StoreError); !isRightType {
-		t.Errorf("Should have returned an error of type StoreError, was %v",
-			err)
-	}
-	err.Error() // Call it to make gocov happy
-
 }
 
 func TestErrorWhenKeyGivenToGetIsMissingMember(t *testing.T) {
