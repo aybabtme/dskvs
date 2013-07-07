@@ -66,3 +66,15 @@ Will yield :
 	member == "..%2F..%2F2e2e2f2e2e2fda39a3ee5e6b4b0d3255bfef95601890afd80709"
 */
 package dskvs
+
+const (
+	// MAJOR_VERSION is used to ensure that incompatible fileformat versions are
+	// not loaded in memory.
+	MAJOR_VERSION uint16 = 0
+	// MINOR_VERSION is used to differentiate between fileformat versions. It might
+	// be used for migrations if a future change to dskvs breaks the original
+	// fileformat contract
+	MINOR_VERSION uint16 = 2
+	// PATCH_VERSION is used for the same reasons as MINOR_VERSION
+	PATCH_VERSION uint64 = 0
+)
