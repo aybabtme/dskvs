@@ -36,14 +36,9 @@ func (p *page) get() []byte {
 
 func (p *page) set(value []byte) {
 	p.Lock()
-	prev := len(p.value)
-	next := len(value)
-	if prev > next {
-		p.value = p.value[:next]
-	} else if prev < next {
-		p.value = make([]byte, next)
-	}
-	copy(p.value, value)
+	newBytes := make([]byte, len(value))
+	copy(newBytes, value)
+	p.value = newBytes
 	wasDirty := p.isDirty
 	p.isDirty = true
 	p.Unlock()
