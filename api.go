@@ -35,9 +35,12 @@ type Store struct {
 	Meta operations on Store
 */
 
-// Load retrieves previously persisted entries and load them in memory.
-// Every file is checked for consistency with a SHA1 checksum.  A file that
-// is not consistent will be ignored, a log message emitted and an error
+// Open creates a new store then retrieves previously persisted entries
+// and load them in memory. If there are no such entries, it returns an
+// empty store.
+//
+// Every entry file is checked for consistency with a SHA1 checksum.  A file
+// that is not consistent will be ignored, a log message emitted and an error
 // returned.  This call will block until all collections have been replenished.
 func Open(path string) (*Store, error) {
 
