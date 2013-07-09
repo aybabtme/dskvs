@@ -74,7 +74,7 @@ const (
 	// MINOR_VERSION is used to differentiate between fileformat versions. It might
 	// be used for migrations if a future change to dskvs breaks the original
 	// fileformat contract
-	MINOR_VERSION uint16 = 2
+	MINOR_VERSION uint16 = 3
 	// PATCH_VERSION is used for the same reasons as MINOR_VERSION
-	PATCH_VERSION uint64 = 2
+	PATCH_VERSION uint64 = 1
 )
