@@ -216,8 +216,9 @@ func generateFilename(aPage *page) string {
 	prefix := []byte(escaped)[:max_length]
 
 	// Append checksum value to the end, avoids collisions
-	hash := sha1.New().Sum([]byte(aPage.key))
-	suffix := hex.EncodeToString(hash)
+	hash := sha1.New()
+	hash.Write([]byte(aPage.key))
+	suffix := hex.EncodeToString(hash.Sum(nil))
 
 	return filepath.Join(aPage.basepath, aPage.coll, string(prefix)+suffix)
 }

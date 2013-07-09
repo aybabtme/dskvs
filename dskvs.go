@@ -76,5 +76,5 @@ const (
 	// fileformat contract
 	MINOR_VERSION uint16 = 2
 	// PATCH_VERSION is used for the same reasons as MINOR_VERSION
-	PATCH_VERSION uint64 = 0
+	PATCH_VERSION uint64 = 1
 )
