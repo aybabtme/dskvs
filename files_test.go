@@ -79,7 +79,7 @@ func TestWriteAndReadDirtyPage(t *testing.T) {
 	}
 }
 
-func TestCreatesPageWithHugeKeys(t *testing.T) {
+func TestPageWithHugeKeys(t *testing.T) {
 
 	expected := genericPage
 	expected.key = `artist/this is a very very very very very very very very
@@ -116,6 +116,87 @@ very very very very very very very very very very long key name`
 
 	if !bytes.Equal(actual.value, expected.value) {
 		t.Errorf("Read different value than what was written")
+	}
+
+}
+
+func TestPageWithHugeKeysDontCollide(t *testing.T) {
+
+	expected := genericPage
+	expected.key = `this is a very very very very very very very very
+very very very very very very very very very very very very very very very
+very very very very very very very very very very very very very very very
+very very very very very very very very very very very very very very very
+very very very very very very very very very very very very very very very
+very very very very very very very very very very very very very very very
+very very very very very very very very very very very very very very very
+very very very very very very very very very very very very very very very
+very very very very very very very very very very very very very very very
+very very very very very very very very very very long key name`
+
+	different := &page{
+		isDirty:   true,
+		isDeleted: false,
+		basepath:  "imdb",
+		coll:      "FMJ",
+		key: `this is a very very very very very very very very
+very very very very very very very very very very very very very very very
+very very very very very very very very very very very very very very very
+very very very very very very very very very very very very very very very
+very very very very very very very very very very very very very very very
+very very very very very very very very very very very very very very very
+very very very very very very very very very very very very very very very
+very very very very very very very very very very very very very very very
+very very very very very very very very very very very very very very very
+very very very very very very very very very very long key namr`,
+		value: []byte(`My value is different`),
+	}
+
+	expectFilename := generateFilename(expected)
+	differentFilename := generateFilename(different)
+	os.MkdirAll(filepath.Dir(expectFilename), DIR_PERM)
+	defer os.RemoveAll(expected.basepath)
+
+	if err := writeToFile(expected); err != nil {
+		t.Errorf("Couldn't write page with long key, %v", err)
+	}
+
+	if err := writeToFile(different); err != nil {
+		t.Errorf("Couldn't write page with long key, %v", err)
+	}
+
+	expectedActual, err := readFromFile(expectFilename)
+	if err != nil {
+		t.Errorf("Couldn't read page <%s> back : %v", expectFilename, err)
+	}
+
+	differentActual, err := readFromFile(differentFilename)
+	if err != nil {
+		t.Errorf("Couldn't read page <%s> back : %v", differentFilename, err)
+	}
+
+	if err := deleteFile(expectFilename); err != nil {
+		t.Fatalf("Couldn't delete page with long key, %v", err)
+	}
+
+	if err := deleteFile(differentFilename); err != nil {
+		t.Fatalf("Couldn't delete page with long key, %v", err)
+	}
+
+	if err = os.Remove(expectFilename); os.IsExist(err) {
+		t.Errorf("Didn't delete file <%s> : %v", expectFilename, err)
+	}
+
+	if err = os.Remove(differentFilename); os.IsExist(err) {
+		t.Errorf("Didn't delete file <%s> : %v", differentFilename, err)
+	}
+
+	if !bytes.Equal(expectedActual.value, expected.value) {
+		t.Errorf("Read another value than what was written for expected")
+	}
+
+	if !bytes.Equal(differentActual.value, different.value) {
+		t.Errorf("Read another value than what was written for different")
 	}
 
 }
