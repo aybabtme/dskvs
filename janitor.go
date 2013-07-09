@@ -81,15 +81,16 @@ func (j *janitor) run() {
 			select {
 			case page := <-j.hasNoFolderOps():
 				atomic.AddInt64(&j.toWriteCount, -1)
-				writeToFile(page)
+				// Don't care about errors, they're logged earlier
+				_ = writeToFile(page)
 
 			case member := <-j.toDeleteChan:
 				atomic.AddInt64(&j.toDeleteCount, -1)
-				deleteFolder(member)
+				_ = deleteFolder(member)
 
 			case member := <-j.toCreateChan:
 				atomic.AddInt64(&j.toCreateCount, -1)
-				createFolder(member)
+				_ = createFolder(member)
 
 			case <-j.shouldDie():
 				j.blockUntilFinished <- false

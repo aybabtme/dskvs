@@ -161,19 +161,23 @@ func deleteFile(filename string) error {
 	return nil
 }
 
-func createFolder(create *member) {
+func createFolder(create *member) error {
 	folderName := filepath.Join(create.basepath, create.coll)
 	if err := os.MkdirAll(folderName, DIR_PERM); err != nil {
 		log.Printf("Couldn't create directory <%s> : %v", folderName, err)
+		return err
 	}
+	return nil
 }
 
-func deleteFolder(delete *member) {
+func deleteFolder(delete *member) error {
 	folderName := filepath.Join(delete.basepath, delete.coll)
 	if err := os.RemoveAll(folderName); err != nil {
 		log.Printf("Couldn't delete folder and children at <%s> : %v",
 			folderName, err)
+		return err
 	}
+	return nil
 }
 
 /*
@@ -217,7 +221,7 @@ func generateFilename(aPage *page) string {
 
 	// Append checksum value to the end, avoids collisions
 	hash := sha1.New()
-	hash.Write([]byte(aPage.key))
+	_, _ = hash.Write([]byte(aPage.key))
 	suffix := hex.EncodeToString(hash.Sum(nil))
 
 	return filepath.Join(aPage.basepath, aPage.coll, string(prefix)+suffix)
