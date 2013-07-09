@@ -76,7 +76,7 @@ func benchGet(size int, b *testing.B) {
 
 	b.StartTimer()
 	for i := 0; i < b.N; i++ {
-		_, _ = d.Get(keys[i%len(keys)])
+		_, _, _ = d.Get(keys[i%len(keys)])
 	}
 	b.StopTimer()
 }

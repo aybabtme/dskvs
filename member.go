@@ -21,16 +21,16 @@ func newMember(basepath, coll string) *member {
 	}
 }
 
-func (m *member) get(key string) ([]byte, error) {
+func (m *member) get(key string) ([]byte, bool) {
 	m.RLock()
 	aPage, ok := m.entries[key]
 	m.RUnlock()
 
 	if !ok {
-		return nil, errorNoSuchKey(key)
+		return nil, false
 	}
 
-	return aPage.get(), nil
+	return aPage.get(), true
 }
 
 func (m *member) getMembers() [][]byte {

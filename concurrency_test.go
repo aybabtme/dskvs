@@ -120,10 +120,13 @@ func TestManyOperationWithMultipleConcurrentRequest(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Error deleting all", err)
 	}
-	for _, kv := range expectedList {
-		checkGetIsEmpty(store, kv.Key, t)
-	}
 
+	for _, kv := range expectedList {
+		_, _, err := store.Get(kv.Key)
+		if _, ok := err.(KeyError); !ok {
+			t.Errorf("Should have returned a KeyError but received %v", err)
+		}
+	}
 }
 
 func TestConcurrentPutCanBeGetAllAndDeleteAll(t *testing.T) {
@@ -151,7 +154,10 @@ func TestConcurrentPutCanBeGetAllAndDeleteAll(t *testing.T) {
 		t.Fatalf("Error deleting all", err)
 	}
 	for _, kv := range expectedList {
-		checkGetIsEmpty(store, kv.Key, t)
+		_, _, err := store.Get(kv.Key)
+		if _, ok := err.(KeyError); !ok {
+			t.Errorf("Should have returned a KeyError but received %v", err)
+		}
 	}
 
 }
@@ -222,7 +228,7 @@ func doGetRequest(ctx Context) {
 	expected := ctx.kv.Value
 
 	t0 := time.Now()
-	actual, err := ctx.s.Get(ctx.kv.Key)
+	actual, _, err := ctx.s.Get(ctx.kv.Key)
 	dT := time.Since(t0)
 
 	ctx.dur <- dT
@@ -242,12 +248,12 @@ func doGetRequest(ctx Context) {
 func doFailGetRequest(ctx Context) {
 	ctx.sem <- 1
 	t0 := time.Now()
-	_, err := ctx.s.Get(ctx.kv.Key)
+	_, ok, _ := ctx.s.Get(ctx.kv.Key)
 	dT := time.Since(t0)
 
 	ctx.dur <- dT
 
-	if _, ok := err.(KeyError); !ok {
+	if ok {
 		ctx.errors <- errors.New(fmt.Sprintf("Should have failed on Get(%s)", ctx.kv.Key))
 	}
 	ctx.wg.Done()

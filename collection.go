@@ -17,15 +17,16 @@ func newCollections(basepath string) *collections {
 	}
 }
 
-func (c *collections) get(coll, key string) ([]byte, error) {
+func (c *collections) get(coll, key string) ([]byte, bool, error) {
 	c.RLock()
 	m, ok := c.members[coll]
 	c.RUnlock()
 	if !ok {
-		return nil, errorNoSuchColl(coll)
+		return nil, false, errorNoSuchColl(coll)
 	}
 
-	return m.get(key)
+	val, ok := m.get(key)
+	return val, ok, nil
 }
 
 func (c *collections) getCollection(coll string) ([][]byte, error) {

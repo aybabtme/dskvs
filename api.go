@@ -105,21 +105,21 @@ func (s *Store) Close() error {
 // `fullKey` is a string that has a collection identifier and a member
 // identifier, separated by `CollKeySep`, Ex:
 //
-//	val, err := store.Get("artists/daft_punk")
+//	val, ok, err := store.Get("artists/daft_punk")
 //
 // will get the value attached to Daft Punk, from within the Artists
-// collection
+// collection.  If the value doesn't exist in the store, ok will be false.
 //
 // ATTENTION : do not modify the value of the slices that are returned to
 // you.
-func (s Store) Get(fullKey string) ([]byte, error) {
+func (s Store) Get(fullKey string) ([]byte, bool, error) {
 
 	if err := checkKeyValid(fullKey); err != nil {
-		return nil, err
+		return nil, false, err
 	}
 
 	if isCollectionKey(fullKey) {
-		return nil, errorGetIsColl(fullKey)
+		return nil, false, errorGetIsColl(fullKey)
 	}
 
 	coll, key := splitKeys(fullKey)

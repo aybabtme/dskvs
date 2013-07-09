@@ -27,11 +27,11 @@ func setUp(t *testing.T) *Store {
 func tearDown(store *Store, t *testing.T) {
 	err := store.Close()
 	if err != nil {
-		t.Fatalf("Error closing store, %v", err)
+		t.Errorf("Error closing store, %v", err)
 	}
 	err = os.RemoveAll(store.storagePath)
 	if err != nil {
-		t.Fatalf("Error deleting storage path, %v", err)
+		t.Errorf("Error deleting storage path, %v", err)
 	}
 }
 
@@ -48,16 +48,13 @@ func generateData(d Data, t *testing.T) []byte {
 ///////////////////////////////////////////////////////////////////////////////
 
 func checkGetIsEmpty(store *Store, key string, t *testing.T) {
-	_, err := store.Get(key)
-	if err == nil {
-		t.Fatalf("Expected to receive KeyError but no error")
+	_, ok, err := store.Get(key)
+	if err != nil {
+		t.Errorf("Expected no error but got : %v", err)
+		panic(err)
 	}
-	switch err := err.(type) {
-	case KeyError:
-		// Expected
-		break
-	default:
-		t.Fatalf("Expected to receive KeyError but got <%s>", err)
+	if ok {
+		t.Fatal("Expected key to be absent but it was there")
 	}
 }
 
@@ -85,9 +82,12 @@ func TestSingleOperation(t *testing.T) {
 		t.Fatalf("Error putting data in, %v", err)
 	}
 
-	actual, err := store.Get(key)
+	actual, ok, err := store.Get(key)
 	if err != nil {
 		t.Fatalf("Error getting data back, %v", err)
+	}
+	if !ok {
+		t.Fatalf("Data was not there when it should have")
 	}
 
 	if !bytes.Equal(expected, actual) {
@@ -116,7 +116,6 @@ func TestMultipleOperations(t *testing.T) {
 	var key string
 	var expected []byte
 	var expectedList [][]byte
-	var actual []byte
 	for i := int(0); i < 10; i++ {
 		key = coll + CollKeySep + baseKey + strconv.Itoa(i)
 		expected = generateData(Data{"The peak of awesome" + strconv.Itoa(i)}, t)
@@ -125,9 +124,12 @@ func TestMultipleOperations(t *testing.T) {
 		if err != nil {
 			t.Errorf("Error putting data in, %v", err)
 		}
-		actual, err = store.Get(key)
+		actual, ok, err := store.Get(key)
 		if err != nil {
 			t.Errorf("Error getting data back, %v", err)
+		}
+		if !ok {
+			t.Errorf("Data was not there when it should have")
 		}
 
 		if !bytes.Equal(expected, actual) {
@@ -153,9 +155,13 @@ func TestMultipleOperations(t *testing.T) {
 	if err != nil {
 		t.Fatal("Error deleting key, %v", err)
 	}
+
 	for i := int(0); i < 10; i++ {
 		key = coll + CollKeySep + baseKey + strconv.Itoa(i)
-		checkGetIsEmpty(store, key, t)
+		_, _, err := store.Get(key)
+		if _, ok := err.(KeyError); !ok {
+			t.Errorf("Should have returned a KeyError but received %v", err)
+		}
 	}
 }
 
@@ -178,10 +184,14 @@ func TestStorePersistPutAfterClose(t *testing.T) {
 	otherStore := setUp(t)
 	defer tearDown(otherStore, t)
 
-	actual, err := otherStore.Get(key)
+	actual, ok, err := otherStore.Get(key)
 	if err != nil {
 		t.Fatalf("Error getting data back, %v", err)
 	}
+	if !ok {
+		t.Fatalf("Data was not there when it should have")
+	}
+
 	if !bytes.Equal(expected, actual) {
 		t.Fatalf("Expected <%s> but was <%s>",
 			expected,
@@ -267,10 +277,13 @@ func TestMultipleOperationsPersistAfterClose(t *testing.T) {
 	defer tearDown(anotherStore, t)
 
 	for _, pair := range expectedList {
-		actual, err := anotherStore.Get(pair.key)
+		actual, ok, err := anotherStore.Get(pair.key)
 		if err != nil {
 			t.Fatalf("Failed getting value with key <%s> back, %v",
 				pair.key, err)
+		}
+		if !ok {
+			t.Errorf("Data was not there when it should have")
 		}
 
 		if !bytes.Equal(pair.value, actual) {
@@ -299,9 +312,12 @@ func TestGivenDataShouldBeCopied(t *testing.T) {
 	modified[2] = 0xBE
 	modified[3] = 0xEF
 
-	actual, err := store.Get(key)
+	actual, ok, err := store.Get(key)
 	if err != nil {
 		t.Fatalf("Couldn't get value back, %v", err)
+	}
+	if !ok {
+		t.Fatalf("Data was not there when it should have")
 	}
 
 	if !bytes.Equal(expected, actual) {
@@ -398,10 +414,13 @@ func TestErrorWhenKeyGivenToGetIsMissingMember(t *testing.T) {
 	store := setUp(t)
 	defer tearDown(store, t)
 
-	_, err := store.Get(keyWithoutMember)
+	_, ok, err := store.Get(keyWithoutMember)
 	if _, isRightType := err.(KeyError); !isRightType {
 		t.Errorf("Should have returned an error of type KeyError, was %v",
 			err)
+	}
+	if ok {
+		t.Fatalf("Data was there when it should not have been")
 	}
 	err.Error() // Call it to make gocov happy
 }
@@ -473,12 +492,15 @@ func TestErrorWhenKeyGivenToGetIsInvalid(t *testing.T) {
 	defer tearDown(store, t)
 
 	for _, key := range invalidKeys {
-		_, err := store.Get(key)
+		_, ok, err := store.Get(key)
 		if _, isRightType := err.(KeyError); !isRightType {
 			t.Errorf("Should have returned an error of type KeyError"+
 				"key was <%v>, error was %v",
 				key,
 				err)
+		}
+		if ok {
+			t.Errorf("Data was there when it should not have been")
 		}
 		err.Error() // Call it to make gocov happy
 	}
