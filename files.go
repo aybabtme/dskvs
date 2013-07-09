@@ -52,7 +52,7 @@ func newFileHeader(aPage *page) *fileHeader {
 	}
 }
 
-func writeToFile(dirty *page) {
+func writeToFile(dirty *page) error {
 	// Don't need to lock the page before reading the key, it's only modified
 	// when `page` are created
 	filename := generateFilename(dirty)
@@ -60,8 +60,7 @@ func writeToFile(dirty *page) {
 	dirty.RLock()
 	if dirty.isDeleted {
 		dirty.RUnlock()
-		deleteFile(filename)
-		return
+		return deleteFile(filename)
 	}
 
 	data, err := fromPageToBytes(dirty)
@@ -70,25 +69,24 @@ func writeToFile(dirty *page) {
 
 	if err != nil {
 		log.Printf("Couldn't get data from page: %v", err)
-		return
+		return err
 	}
 
 	dirty.Lock()
 	if dirty.isDeleted {
 		// Was requested for deletion right after we tested
 		dirty.Unlock()
-		writeToFile(dirty)
-		return
+		return writeToFile(dirty)
 	}
 	dirty.isDirty = false
 	dirty.Unlock()
 
 	if err := ioutil.WriteFile(filename, data, FILE_PERM); err != nil {
 		log.Printf("Couldn't write file <%s> : %v", filename, err)
-		return
+		return err
 	}
 
-	return
+	return nil
 }
 
 func readFromFile(filename string) (*page, error) {
@@ -151,14 +149,16 @@ func readFromFile(filename string) (*page, error) {
 	}, nil
 }
 
-func deleteFile(filename string) {
+func deleteFile(filename string) error {
 	err := os.Remove(filename)
 	if os.IsNotExist(err) {
 		// Duplicate request, or file doesn't exist.
 		// Common case and not worth logging.
 	} else if err != nil {
 		log.Printf("Couldn't delete file <%s> : %v", filename, err)
+		return err
 	}
+	return nil
 }
 
 func createFolder(create *member) {

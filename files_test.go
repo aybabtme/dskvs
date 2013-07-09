@@ -79,6 +79,47 @@ func TestWriteAndReadDirtyPage(t *testing.T) {
 	}
 }
 
+func TestCreatesPageWithHugeKeys(t *testing.T) {
+
+	expected := genericPage
+	expected.key = `artist/this is a very very very very very very very very
+very very very very very very very very very very very very very very very
+very very very very very very very very very very very very very very very
+very very very very very very very very very very very very very very very
+very very very very very very very very very very very very very very very
+very very very very very very very very very very very very very very very
+very very very very very very very very very very very very very very very
+very very very very very very very very very very very very very very very
+very very very very very very very very very very very very very very very
+very very very very very very very very very very long key name`
+
+	filename := generateFilename(expected)
+	os.MkdirAll(filepath.Dir(filename), DIR_PERM)
+	defer os.RemoveAll(expected.basepath)
+
+	if err := writeToFile(expected); err != nil {
+		t.Errorf("Couldn't write page with long key, %v", err)
+	}
+
+	actual, err := readFromFile(filename)
+	if err != nil {
+		t.Errorf("Couldn't read page <%s> back : %v", filename, err)
+	}
+
+	if err := deleteFile(filename); err != nil {
+		t.Fatalf("Couldn't delete page with long key, %v", err)
+	}
+
+	if err = os.Remove(filename); os.IsExist(err) {
+		t.Errorf("Didn't delete file <%s> : %v", filename, err)
+	}
+
+	if !bytes.Equal(actual.value, expected.value) {
+		t.Errorf("Read different value than what was written")
+	}
+
+}
+
 func TestDeletingPageShouldDeleteFile(t *testing.T) {
 
 	expected := genericPage
