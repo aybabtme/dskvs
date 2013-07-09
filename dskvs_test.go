@@ -460,6 +460,10 @@ func TestErrorWhenKeyGivenToDeleteAllHasMember(t *testing.T) {
 
 var invalidKeys = []string{
 	"",
+	"..",
+	"../",
+	".",
+	"./",
 	"/a member",
 	"acoll/",
 }
