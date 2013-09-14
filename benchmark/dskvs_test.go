@@ -1,7 +1,8 @@
-package dskvs
+package benchmark
 
 import (
 	"fmt"
+	"github.com/aybabtme/dskvs"
 	"math/rand"
 	"os"
 	"testing"
@@ -13,7 +14,7 @@ import (
 
 func shuffle(keys []string) {
 	ints := rand.Perm(len(keys))
-	for i, _ := range keys {
+	for i := range keys {
 		keys[i], keys[ints[i]] = keys[ints[i]], keys[i]
 	}
 }
@@ -27,7 +28,8 @@ func genValue(size int) []byte {
 }
 
 const (
-	KEY_COUNT = 10000
+	KEY_COUNT   = 10000
+	storagePath = "./db"
 )
 
 func genKeys() []string {
@@ -38,20 +40,20 @@ func genKeys() []string {
 	return keys
 }
 
-func setUpBench(b *testing.B) *Store {
-	store, err := Open("./db")
+func setUpBench(b *testing.B) *dskvs.Store {
+	store, err := dskvs.Open(storagePath)
 	if err != nil {
 		b.Fatalf("Error opening store, %v", err)
 	}
 	return store
 }
 
-func tearDownBench(store *Store, b *testing.B) {
+func tearDownBench(store *dskvs.Store, b *testing.B) {
 	err := store.Close()
 	if err != nil {
 		b.Fatalf("Error closing store, %v", err)
 	}
-	err = os.RemoveAll(store.storagePath)
+	err = os.RemoveAll(storagePath)
 	if err != nil {
 		b.Fatalf("Error deleting storage path, %v", err)
 	}
@@ -100,35 +102,35 @@ func benchPut(size int, b *testing.B) {
 }
 
 // Put
-func BenchmarkPut32B(b *testing.B) {
+func Benchmark_Dskvs_Put_32B(b *testing.B) {
 	benchPut(32, b)
 }
 
-func BenchmarkPut1KB(b *testing.B) {
+func Benchmark_Dskvs_Put_1KB(b *testing.B) {
 	benchPut(1024, b)
 }
 
-func BenchmarkPut4KB(b *testing.B) {
+func Benchmark_Dskvs_Put_4KB(b *testing.B) {
 	benchPut(4096, b)
 }
 
-func BenchmarkPut10KB(b *testing.B) {
+func Benchmark_Dskvs_Put_10KB(b *testing.B) {
 	benchPut(10240, b)
 }
 
 // Get
-func BenchmarkGet32B(b *testing.B) {
+func Benchmark_Dskvs_Get_32B(b *testing.B) {
 	benchGet(32, b)
 }
 
-func BenchmarkGet1KB(b *testing.B) {
+func Benchmark_Dskvs_Get_1KB(b *testing.B) {
 	benchGet(1024, b)
 }
 
-func BenchmarkGet4KB(b *testing.B) {
+func Benchmark_Dskvs_Get_4KB(b *testing.B) {
 	benchGet(4096, b)
 }
 
-func BenchmarkGet10KB(b *testing.B) {
+func Benchmark_Dskvs_Get_10KB(b *testing.B) {
 	benchGet(10240, b)
 }
