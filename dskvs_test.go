@@ -158,9 +158,12 @@ func TestMultipleOperations(t *testing.T) {
 
 	for i := int(0); i < 10; i++ {
 		key = coll + CollKeySep + baseKey + strconv.Itoa(i)
-		_, _, err := store.Get(key)
-		if _, ok := err.(KeyError); !ok {
-			t.Errorf("Should have returned a KeyError but received %v", err)
+		_, ok, err := store.Get(key)
+		if err != nil {
+			t.Errorf("Shouldn't receive an error here, but got %v", err)
+		}
+		if ok {
+			t.Errorf("Should not have found the key, but found it")
 		}
 	}
 }

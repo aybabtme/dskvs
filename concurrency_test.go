@@ -2,7 +2,6 @@ package dskvs
 
 import (
 	"bytes"
-	"errors"
 	"flag"
 	"fmt"
 	"log"
@@ -122,9 +121,12 @@ func TestManyOperationWithMultipleConcurrentRequest(t *testing.T) {
 	}
 
 	for _, kv := range expectedList {
-		_, _, err := store.Get(kv.Key)
-		if _, ok := err.(KeyError); !ok {
-			t.Errorf("Should have returned a KeyError but received %v", err)
+		_, ok, err := store.Get(kv.Key)
+		if err != nil {
+			t.Errorf("Shouldn't receive an error here, but got %v", err)
+		}
+		if ok {
+			t.Errorf("Should not have found the key, but found it")
 		}
 	}
 }
@@ -154,9 +156,12 @@ func TestConcurrentPutCanBeGetAllAndDeleteAll(t *testing.T) {
 		t.Fatalf("Error deleting all", err)
 	}
 	for _, kv := range expectedList {
-		_, _, err := store.Get(kv.Key)
-		if _, ok := err.(KeyError); !ok {
-			t.Errorf("Should have returned a KeyError but received %v", err)
+		_, ok, err := store.Get(kv.Key)
+		if err != nil {
+			t.Errorf("Shouldn't receive an error here, but got %v", err)
+		}
+		if ok {
+			t.Errorf("Should not have found the key, but found it")
 		}
 	}
 
@@ -254,7 +259,7 @@ func doFailGetRequest(ctx Context) {
 	ctx.dur <- dT
 
 	if ok {
-		ctx.errors <- errors.New(fmt.Sprintf("Should have failed on Get(%s)", ctx.kv.Key))
+		ctx.errors <- fmt.Errorf("Should have failed on Get(%s)", ctx.kv.Key)
 	}
 	ctx.wg.Done()
 	<-ctx.sem

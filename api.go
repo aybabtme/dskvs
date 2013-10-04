@@ -124,7 +124,8 @@ func (s Store) Get(fullKey string) ([]byte, bool, error) {
 
 	coll, key := splitKeys(fullKey)
 
-	return s.coll.get(coll, key)
+	val, ok := s.coll.get(coll, key)
+	return val, ok, nil
 }
 
 // GetAll returns all the members in the collection `coll`.
