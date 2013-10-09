@@ -49,7 +49,7 @@ func errorPayloadWrongSize(name string, expected uint64, actual int) error {
 func errorWrongVersion(major, minor uint16, patch uint64) error {
 	return FileError{
 		fmt.Sprintf("File version incompatible with this version (%d.%d.%d)",
-			MAJOR_VERSION, MINOR_VERSION, PATCH_VERSION),
+			MajorVersion, MinorVersion, PatchVersion),
 		fmt.Sprintf("given version %d.%d.%d", major, minor, patch),
 	}
 }

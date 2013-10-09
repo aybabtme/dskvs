@@ -514,14 +514,13 @@ func TestErrorWhenKeyGivenToGetAllIsInvalid(t *testing.T) {
 	defer tearDown(store, t)
 
 	for _, key := range invalidKeys {
-		_, err := store.GetAll(key)
-		if _, isRightType := err.(KeyError); !isRightType {
-			t.Errorf("Should have returned an error of type KeyError"+
-				"key was <%v>, error was %v",
+		all, _ := store.GetAll(key)
+		if all != nil {
+			t.Errorf("Should have returned no values"+
+				"key was <%v>, len(values) was %d",
 				key,
-				err)
+				len(all))
 		}
-		err.Error() // Call it to make gocov happy
 	}
 }
 
@@ -566,11 +565,14 @@ func TestErrorWhenKeyGivenToDeleteAllIsInvalid(t *testing.T) {
 	for _, key := range invalidKeys {
 		err := store.DeleteAll(key)
 		if _, isRightType := err.(KeyError); !isRightType {
-			t.Errorf("Should have returned an error of type KeyError"+
+			if err == nil {
+				continue
+			}
+			t.Errorf("Should not have returned an error, "+
 				"key was <%v>, error was %v",
 				key,
 				err)
+			err.Error() // Call it to make gocov happy
 		}
-		err.Error() // Call it to make gocov happy
 	}
 }

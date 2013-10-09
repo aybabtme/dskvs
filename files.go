@@ -43,9 +43,9 @@ func newFileHeader(aPage *page) *fileHeader {
 	}
 
 	return &fileHeader{
-		MAJOR_VERSION,
-		MINOR_VERSION,
-		PATCH_VERSION,
+		MajorVersion,
+		MinorVersion,
+		PatchVersion,
 		checksum,
 		uint64(len([]byte(aPage.key))),
 		uint64(len(aPage.value)),
@@ -104,7 +104,7 @@ func readFromFile(filename string) (*page, error) {
 	}
 
 	// Fileformat is garanteed within same major versions
-	if header.Major > MAJOR_VERSION {
+	if header.Major > MajorVersion {
 		return nil, errorWrongVersion(header.Major, header.Minor, header.Patch)
 	}
 

@@ -248,7 +248,7 @@ func TestErrorWhenOpeningDifferentMajorVersion(t *testing.T) {
 	// Get the header as it will be written to disk
 	currentHeader := newFileHeader(aPage)
 	// Modify it
-	currentHeader.Major = MAJOR_VERSION + 1
+	currentHeader.Major = MajorVersion + 1
 	headerBytes, err := headerToBytes(currentHeader)
 	if err != nil {
 		t.Fatalf("Couldn't get fake header, %v", err)

@@ -29,16 +29,16 @@ func (c *collections) get(coll, key string) ([]byte, bool) {
 	return val, ok
 }
 
-func (c *collections) getCollection(coll string) ([][]byte, error) {
+func (c *collections) getCollection(coll string) [][]byte {
 	c.RLock()
 	m, ok := c.members[coll]
 	c.RUnlock()
 
 	if !ok {
-		return nil, errorNoSuchColl(coll)
+		return nil
 	}
 
-	return m.getMembers(), nil
+	return m.getMembers()
 }
 
 func (c *collections) put(coll, key string, value []byte) {
@@ -80,7 +80,7 @@ func (c *collections) deleteKey(coll, key string) error {
 	return nil
 }
 
-func (c *collections) deleteCollection(coll string) error {
+func (c *collections) deleteCollection(coll string) {
 	c.RLock()
 	_, ok := c.members[coll]
 	c.RUnlock()
@@ -92,16 +92,12 @@ func (c *collections) deleteCollection(coll string) error {
 		c.Unlock()
 		// Was deleted in between our read-lock and the current write-lock
 		if !ok {
-			return errorNoSuchColl(coll)
+			return
 		}
 
 		// TODO : This is not really necessary, can just delete the folder
 		// at once and save some IO.
 		m.deleteAll()
 		jan.deleteFolder(m)
-	} else {
-		return errorNoSuchColl(coll)
 	}
-
-	return nil
 }
