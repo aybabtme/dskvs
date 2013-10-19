@@ -55,7 +55,14 @@ dozens of highly specialized data store providing this sort of features,
 Look it up on [GoDoc](http://godoc.org/github.com/aybabtme/dskvs)
 
 ## Usage
-`go get` the master branch.
+
+Verify that you have a recent version of Go (>= 1.1):
+
+```
+$ go version
+```
+
+Then `go get github.com/aybabtme/dskvs`.
 
 To use the library, import it:
 ```go
