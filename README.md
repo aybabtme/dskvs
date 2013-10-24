@@ -6,7 +6,7 @@
 Status](https://coveralls.io/repos/aybabtme/dskvs/badge.png?branch=master)](https://coveralls.io/r/aybabtme/dskvs?branch=master)
 
 An in-memory, eventually persisted data store of the simplest design, `dskvs`
-stores it's data in two layers of maps, which are routinely persisted to disk
+stores its data in two layers of maps, which are routinely persisted to disk
 by a janitor.
 
 `dskvs` stands for Dead Simple Key-Value Store.  The aim of this library is to
