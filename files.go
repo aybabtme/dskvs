@@ -5,6 +5,7 @@ import (
 	"crypto/sha1"
 	"encoding/binary"
 	"encoding/hex"
+	"fmt"
 	"io/ioutil"
 	"log"
 	"net/url"
@@ -31,7 +32,15 @@ var (
 )
 
 func newFileHeader(aPage *page) *fileHeader {
-	hash := sha1.New().Sum(aPage.value)
+	h := sha1.New()
+	n, err := h.Write(aPage.value)
+	if err != nil {
+		log.Fatalf("writing to SHA1 hash, %v", err)
+	}
+	if n != len(aPage.value) {
+		log.Fatalf("should have writen %d bytes, wrote %d", len(aPage.value), n)
+	}
+	hash := h.Sum(nil)
 	checksum, size := binary.Uvarint(hash)
 
 	if size == 0 {
@@ -119,7 +128,15 @@ func readFromFile(filename string) (*page, error) {
 			len(data[payloadIndex:]))
 	}
 
-	hash := sha1.New().Sum(payload)
+	h := sha1.New()
+	n, err := h.Write(payload)
+	if err != nil {
+		return nil, fmt.Errorf("writing to SHA1 hash, %v", err)
+	}
+	if n != len(payload) {
+		return nil, fmt.Errorf("should have writen %d bytes, wrote %d", len(payload), n)
+	}
+	hash := h.Sum(nil)
 
 	checksum, size := binary.Uvarint(hash)
 	if size == 0 {
