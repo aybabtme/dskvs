@@ -1,3 +1,5 @@
+I don't recommend you use this. Was just a toy.
+
 # DSKVS
 
 [![Build Status](https://drone.io/github.com/aybabtme/dskvs/status.png)]
